@@ -1,0 +1,7 @@
+2005.270: 0.3
+	- Add EH[ZNE] preset mappings.	
+	- Add custom channel number to channel codes mapping ability.
+	- Add warning message that all samples have been scaled.
+	- update to libmseed 1.2.
+
+2005.???: versions 0.1 and 0.2.

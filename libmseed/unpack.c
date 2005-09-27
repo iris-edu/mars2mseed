@@ -13,7 +13,7 @@
  *   ORFEUS/EC-Project MEREDIAN
  *   IRIS Data Management Center
  *
- * modified: 2005.117
+ * modified: 2005.269
  ***************************************************************************/
 
 #include <stdio.h>
@@ -31,11 +31,12 @@ static int check_environment (int verbose);
 /* Header and data byte order flags controlled by environment variables */
 /* -2 = not checked, -1 = checked but not set, or 0 = LE and 1 = BE */
 static flag headerbyteorder = -2;
-static flag databyteorder = -2;
+static flag databyteorder   = -2;
 
-/* Data encoding format controlled by environment variable */
+/* Data encoding format/fallback controlled by environment variable */
 /* -2 = not checked, -1 = checked but not set, or = encoding */
-static int encodingformat = -2;
+static int encodingformat   = -2;
+static int encodingfallback = -2;
 
 /***************************************************************************
  * msr_unpack:
@@ -64,7 +65,7 @@ static int encodingformat = -2;
  * If the msr struct is NULL it will be allocated.
  * 
  * Returns a pointer to the MSrecord struct populated on success or
- *  NULL on error.
+ * NULL on error.
  ***************************************************************************/
 MSrecord *
 msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
@@ -113,7 +114,8 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
   /* Check environment variables if necessary */
   if ( headerbyteorder == -2 ||
        databyteorder == -2 ||
-       encodingformat == -2 )
+       encodingformat == -2 ||
+       encodingfallback == -2 )
     if ( check_environment(verbose) )
       return NULL;
   
@@ -223,7 +225,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_100_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -245,7 +247,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_200_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -268,7 +270,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_201_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -291,7 +293,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_300_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -315,7 +317,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_310_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -339,7 +341,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_320_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -362,7 +364,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_390_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -384,7 +386,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_395_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -404,7 +406,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_400_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -426,7 +428,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_405_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -451,7 +453,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_500_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -473,7 +475,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_1000_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -501,7 +503,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	{			/* Found a Blockette 1001 */
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
 					sizeof (struct blkt_1001_s),
-					blkt_type);
+					blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -521,7 +523,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	  b2klen -= 4;
 	  
 	  blkt_link = msr_addblockette (msr, record + blkt_offset,
-					b2klen, blkt_type);
+					b2klen, blkt_type, 0);
 	  if ( ! blkt_link )
 	    break;
 	  
@@ -543,7 +545,7 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
 	    {
 	      blkt_link = msr_addblockette (msr, record + blkt_offset,
 					    blkt_length - 4,
-					    blkt_type);
+					    blkt_type, 0);
 	      
 	      if ( ! blkt_link )
 		break;
@@ -600,7 +602,19 @@ msr_unpack ( char *record, int reclen, MSrecord **ppmsr,
     {
       msr->encoding = encodingformat;
     }
-
+  
+  /* Use encoding format fallback if defined and no encoding is set,
+   * also make sure the byteorder is set by default to big endian */
+  if ( encodingfallback >= 0 && msr->encoding == -1 )
+    {
+      msr->encoding = encodingfallback;
+      
+      if ( msr->byteorder == -1 )
+	{
+	  msr->byteorder = 1;
+	}
+    }
+  
   /* Unpack the data samples if requested */
   if ( dataflag && msr->samplecnt > 0 )
     {
@@ -734,7 +748,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
       
       nsamples = msr_unpack_int_16 ((int16_t *)dbuf, msr->samplecnt,
 				    msr->samplecnt, msr->datasamples,
-				    swapflag);
+				    &msr->unpackerr, swapflag);
       msr->sampletype = 'i';
       break;
       
@@ -744,7 +758,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
 
       nsamples = msr_unpack_int_32 ((int32_t *)dbuf, msr->samplecnt,
 				    msr->samplecnt, msr->datasamples,
-				    swapflag);
+				    &msr->unpackerr, swapflag);
       msr->sampletype = 'i';
       break;
       
@@ -754,7 +768,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
       
       nsamples = msr_unpack_float_32 ((float *)dbuf, msr->samplecnt,
 				      msr->samplecnt, msr->datasamples,
-				      swapflag);
+				      &msr->unpackerr, swapflag);
       msr->sampletype = 'f';
       break;
       
@@ -764,7 +778,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
       
       nsamples = msr_unpack_float_64 ((double *)dbuf, msr->samplecnt,
 				      msr->samplecnt, msr->datasamples,
-				      swapflag);
+				      &msr->unpackerr, swapflag);
       msr->sampletype = 'd';
       break;
       
@@ -781,7 +795,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
       
       nsamples = msr_unpack_steim1 ((FRAME *)dbuf, datasize, msr->samplecnt,
 				    msr->samplecnt, msr->datasamples, diffbuff, 
-				    &x0, &xn, swapflag, verbose);
+				    &x0, &xn, &msr->unpackerr, swapflag, verbose);
       msr->sampletype = 'i';
       free (diffbuff);
       break;
@@ -799,7 +813,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
 
       nsamples = msr_unpack_steim2 ((FRAME *)dbuf, datasize, msr->samplecnt,
 				    msr->samplecnt, msr->datasamples, diffbuff,
-				    &x0, &xn, swapflag, verbose);
+				    &x0, &xn, &msr->unpackerr, swapflag, verbose);
       msr->sampletype = 'i';
       free (diffbuff);
       break;
@@ -814,16 +828,7 @@ msr_unpack_data ( MSrecord *msr, int swapflag, int verbose )
       return -1;
     }
   
-  if ( nsamples > 0 || msr->samplecnt == 0 )
-    {
-      return nsamples;
-    }
-  if ( nsamples < 0 )
-    {
-      msr->unpackerr = nsamples;
-    }
-  
-  return -1;
+  return nsamples;
 } /* End of msr_unpack_data() */
 
 
@@ -916,6 +921,27 @@ check_environment (int verbose)
 	  encodingformat = -1;
 	}
     }
-
+  
+  /* Read possible environmental variable to be used as a fallback encoding format */
+  if ( encodingfallback == -2 )
+    {
+      if ( (envvariable = getenv("UNPACK_DATA_FORMAT_FALLBACK")) )
+	{
+	  encodingfallback = (int) strtol (envvariable, NULL, 10);
+	  
+	  if ( encodingfallback < 0 || encodingfallback > 33 )
+	    {
+	      fprintf (stderr, "Environment variable UNPACK_DATA_FORMAT_FALLBACK set to invalid value: '%d'\n", encodingfallback);
+	      return -1;
+	    }
+	  else if ( verbose > 2 )
+	    fprintf (stderr, "UNPACK_DATA_FORMAT_FALLBACK, unpacking data in encoding format %d\n", encodingfallback);
+	}
+      else
+	{
+	  encodingfallback = 10;  /* Default fallback is Steim-1 encoding */
+	}
+    }
+  
   return 0;
 } /* End of check_environment() */

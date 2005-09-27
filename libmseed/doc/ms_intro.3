@@ -1,17 +1,17 @@
-.TH MS_INTRO 3 2005/04/26
+.TH MS_INTRO 3 2005/09/23
 .SH NAME
-Introduction to libmseed-1.0
+Introduction to libmseed
 
 .SH INTRODUCTION
 
 The Mini-SEED library provides a framework for manipulation of SEED
 data records including the unpacking and packing of data records.
 Functionality is also included for managing waveform data as
-continuous traces.  All aspects of SEED 2.4 data records are supported
-with the following exceptions: Blockette 2000 opaque data which has
-an unknown data structure by definition and Blockette 405 which
-depends on full SEED (SEED including full ASCII headers) for a full
-data description.
+continuous traces.  All structures of SEED 2.4 data records are
+supported with the following exceptions: Blockette 2000 opaque data
+which has an unknown data structure by definition and Blockette 405
+which depends on full SEED (SEED including full ASCII headers) for a
+full data description.
 
 The primary purpose of the library is to hide the details of Mini-SEED
 in order to allow rapid development of Mini-SEED reading/writing
@@ -76,7 +76,7 @@ typedef struct MSrecord_s {
   char            station[11];       /* Station designation */
   char            location[11];      /* Location designation */
   char            channel[11];       /* Channel designation */
-  int64_t         starttime;         /* Record start time */
+  hptime_t        starttime;         /* Record start time */
   double          samprate;          /* Nominal sample rate (Hz) */
   int32_t         samplecnt;         /* Number of samples in record */
   int8_t          encoding;          /* Data encoding format */
@@ -217,8 +217,8 @@ typedef struct Trace_s {
   char            location[11];    /* Location designation */
   char            channel[11];     /* Channel designation */
   char            type;            /* Trace type code */
-  int64_t         starttime;       /* Time of first sample */
-  int64_t         endtime;         /* Time of last sample */
+  hptime_t        starttime;       /* Time of first sample */
+  hptime_t        endtime;         /* Time of last sample */
   double          samprate;        /* Nominal sample rate (Hz) */
   int32_t         samplecnt;       /* Num. in trace coverage */
   void           *datasamples;     /* Data samples */
@@ -410,7 +410,7 @@ main() {
     }
 
   /* Do something with the traces here, e.g. print */
-  mst_printtracelist (mstg, verbose, 0);
+  mst_printtracelist (mstg, 0, verbose, 0);
 
   mst_freegroup (&mstg);
 }

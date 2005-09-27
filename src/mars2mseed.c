@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2005.123
+ * modified 2005.270
  ***************************************************************************/
 
 #include <stdio.h>
@@ -19,21 +19,29 @@
 
 #include "marsio.h"
 
-#define VERSION "0.2"
+#define VERSION "0.3"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
-static char *transmatrix[4][3] = {
+static char *transmatrix[5][3] = {
   {"Z", "N", "E"},
   {"SHZ", "SHN", "SHE"},
   {"BHZ", "BHN", "BHE"},
-  {"HHZ", "HHN", "HHE"}
+  {"HHZ", "HHN", "HHE"},
+  {"EHZ", "EHN", "EHE"}
+};
+
+struct listnode {
+  char *key;
+  char *data;
+  struct listnode *next;
 };
 
 static int mars2group (char *mfile, TraceGroup *mstg);
 static int parameter_proc (int argcount, char **argvec);
 static char *getoptval (int argcount, char **argvec, int argopt);
-static void addfile (char *filename);
+static void addnode (struct listnode **listroot, char *key, char *data);
+static void addmapnode (struct listnode **listroot, char *mapping);
 static void record_handler (char *record, int reclen);
 static void usage (void);
 static void term_handler (int sig);
@@ -50,17 +58,16 @@ static int   transchan   = -1;
 static char *outputfile  = 0;
 static FILE *ofp         = 0;
 
-struct filelink {
-  char *filename;
-  struct filelink *next;
-};
+/* A list of input files */
+struct listnode *filelist = 0;
 
-struct filelink *filelist = 0;
+/* A list of component to channel translations */
+struct listnode *chanlist = 0;
 
 int
 main (int argc, char **argv)
 {
-  struct filelink *flp;
+  struct listnode *flp;
   TraceGroup *mstg = 0;
 
   int packedsamples = 0;
@@ -109,13 +116,12 @@ main (int argc, char **argv)
   
   /* Read input MARS files into TraceGroup */
   flp = filelist;
-  
   while ( flp != 0 )
     {
       if ( verbose )
-	fprintf (stderr, "Reading %s\n", flp->filename);
+	fprintf (stderr, "Reading %s\n", flp->data);
 
-      mars2group (flp->filename, mstg);
+      mars2group (flp->data, mstg);
       
       flp = flp->next;
     }
@@ -133,6 +139,8 @@ main (int argc, char **argv)
       fprintf (stderr, "Packed %d trace(s) of %d samples into %d records\n",
 	       mstg->numtraces, packedsamples, packedrecords);
     }
+
+  fprintf (stderr, "All data samples have been scaled by 10!\n");
   
   /* Make sure everything is cleaned up */
   mst_freegroup (&mstg);
@@ -157,7 +165,9 @@ static int
 mars2group (char *mfile, TraceGroup *mstg)
 {
   MSrecord *msr = 0;
+  struct listnode *clp;
   int retval = 0;
+  char mapped;
   
   marsStream *hMS;
   long	     *hData, *hD, scale;
@@ -208,13 +218,32 @@ mars2group (char *mfile, TraceGroup *mstg)
 	  else ms_strncpclean (msr->station, mbGetStationCode(hMS->block), 5);
           ms_strncpclean (msr->location, forceloc, 2);
 	  
-	  /* Transmogrify the channel numbers to channel codes or just copy */
-	  if ( transchan >= 0 && transchan <= 3 )
+	  /* Transmogrify the channel numbers to channel codes first
+	     using any custom mappings, then pre-defined mappings and
+	     finally just copy. */
+	  mapped = 0;
+	  if ( chanlist )
+	    {
+	      clp = chanlist;
+	      while ( clp != 0 )
+		{
+		  if ( *(clp->key) == ('0' + (int)mbGetChan(hMS->block)) )
+		    {
+		      strncpy (msr->channel, clp->data, 10);
+		      mapped = 1;
+		      break;
+		    }
+		  
+		  clp = clp->next;
+		}
+	    }
+	  if ( ! mapped && transchan >= 0 && transchan <= 4 )
 	    {
 	      snprintf (msr->channel, 10, "%s",
-			transmatrix[transchan][(int)mbGetChan(hMS->block)]);
+			transmatrix[transchan][(int)mbGetChan(hMS->block)]);	      
+	      mapped = 1;
 	    }
-	  else
+	  if ( ! mapped )
 	    {
 	      snprintf (msr->channel, 10, "%d", mbGetChan(hMS->block));
 	    }
@@ -318,6 +347,10 @@ parameter_proc (int argcount, char **argvec)
 	{
 	  transchan = atoi (getoptval(argcount, argvec, optind++));
 	}
+      else if (strcmp (argvec[optind], "-T") == 0)
+	{
+	  addmapnode (&chanlist, getoptval(argcount, argvec, optind++));
+	}
       else if (strncmp (argvec[optind], "-", 1) == 0 &&
 	       strlen (argvec[optind]) > 1 )
 	{
@@ -326,7 +359,7 @@ parameter_proc (int argcount, char **argvec)
 	}
       else
 	{
-	  addfile (argvec[optind]);
+	  addnode (&filelist, NULL, argvec[optind]);
 	}
     }
 
@@ -381,22 +414,22 @@ getoptval (int argcount, char **argvec, int argopt)
 
 
 /***************************************************************************
- * addfile:
+ * addnode:
  *
- * Add file to end of the global file list (filelist).
+ * Add node to the specified list.
  ***************************************************************************/
 static void
-addfile (char *filename)
+addnode (struct listnode **listroot, char *key, char *data)
 {
-  struct filelink *lastlp, *newlp;
+  struct listnode *lastlp, *newlp;
   
-  if ( filename == NULL )
+  if ( data == NULL )
     {
-      fprintf (stderr, "addfile(): No file name specified\n");
+      fprintf (stderr, "addnode(): No file name specified\n");
       return;
     }
   
-  lastlp = filelist;
+  lastlp = *listroot;
   while ( lastlp != 0 )
     {
       if ( lastlp->next == 0 )
@@ -405,16 +438,48 @@ addfile (char *filename)
       lastlp = lastlp->next;
     }
   
-  newlp = (struct filelink *) malloc (sizeof (struct filelink));
-  newlp->filename = strdup(filename);
+  newlp = (struct listnode *) malloc (sizeof (struct listnode));
+  if ( key ) newlp->key = strdup(key);
+  else newlp->key = key;
+  if ( data) newlp->data = strdup(data);
+  else newlp->data = data;
   newlp->next = 0;
   
   if ( lastlp == 0 )
-    filelist = newlp;
+    *listroot = newlp;
   else
     lastlp->next = newlp;
   
-}  /* End of addfile() */
+}  /* End of addnode() */
+
+
+/***************************************************************************
+ * addmapnode:
+ *
+ * Add a node to a list deriving the key and data from the supplied
+ * mapping string: 'key=data'.
+ ***************************************************************************/
+static void
+addmapnode (struct listnode **listroot, char *mapping)
+{
+  char *key;
+  char *data;
+
+  key = mapping;
+  data = strchr (mapping, '=');
+  
+  if ( ! data )
+    {
+      fprintf (stderr, "addmapmnode(): Cannot find '=' in mapping '%s'\n", mapping);
+      return;
+    }
+
+  *data++ = '\0';
+  
+  /* Add to specified list */
+  addnode (listroot, key, data);
+  
+}  /* End of addmapnode() */
 
 
 /***************************************************************************
@@ -447,9 +512,9 @@ usage (void)
 	   " -h             Show this usage message\n"
 	   " -v             Be more verbose, multiple flags can be used\n"
 	   " -p             Parse MARS data only, do not write Mini-SEED\n"
-	   " -s stacode     Force the SEED station code\n"
-	   " -n netcode     Force the SEED network code\n"
-	   " -l loccode     Force the SEED location code\n"
+	   " -s stacode     Force the SEED station code, default is from input data\n"
+	   " -n netcode     Force the SEED network code, default is blank\n"
+	   " -l loccode     Force the SEED location code, default is blank\n"
 	   " -r bytes       Specify record length in bytes for packing, default: 4096\n"
 	   " -e encoding    Specify SEED encoding format for packing, default: 11 (Steim2)\n"
 	   " -b byteorder   Specify byte order for packing, MSBF: 1 (default), LSBF: 0\n"
@@ -459,6 +524,10 @@ usage (void)
 	   "                   1: 0->SHZ, 1->SHN, 2->SHE\n"
 	   "                   2: 0->BHZ, 1->BHN, 2->BHE\n"
 	   "                   3: 0->HHZ, 1->HHN, 2->HHE\n"
+	   "                   4: 0->EHZ, 1->EHN, 2->EHE\n"
+	   "\n"
+	   " -T #=chan      Specify custom channel number to codes mapping\n"
+	   "                  e.g.: '-T 0=LLZ -T 1=LLN -T 2=LLZ'\n"
 	   "\n"
 	   " file(s)        File(s) of MARS input data\n"
 	   "\n"

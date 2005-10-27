@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2005.270
+ * modified 2005.300
  ***************************************************************************/
 
 #include <stdio.h>
@@ -13,13 +13,12 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include <signal.h>
 
 #include <libmseed.h>
 
 #include "marsio.h"
 
-#define VERSION "0.3"
+#define VERSION "0.4"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -37,20 +36,22 @@ struct listnode {
   struct listnode *next;
 };
 
+static void packtraces (flag flush);
 static int mars2group (char *mfile, TraceGroup *mstg);
 static int parameter_proc (int argcount, char **argvec);
 static char *getoptval (int argcount, char **argvec, int argopt);
+static int readlistfile (char *listfile);
 static void addnode (struct listnode **listroot, char *key, char *data);
 static void addmapnode (struct listnode **listroot, char *mapping);
 static void record_handler (char *record, int reclen);
 static void usage (void);
-static void term_handler (int sig);
 
 static int   verbose     = 0;
 static int   parseonly   = 0;
 static int   packreclen  = -1;
 static int   encoding    = -1;
 static int   byteorder   = -1;
+static char  bufferall   = 0;
 static char *forcesta    = 0;
 static char *forcenet    = 0;
 static char *forceloc    = 0;
@@ -64,30 +65,17 @@ struct listnode *filelist = 0;
 /* A list of component to channel translations */
 struct listnode *chanlist = 0;
 
+static TraceGroup *mstg = 0;
+
+static int packedtraces  = 0;
+static int packedsamples = 0;
+static int packedrecords = 0;
+
 int
 main (int argc, char **argv)
 {
   struct listnode *flp;
-  TraceGroup *mstg = 0;
-
-  int packedsamples = 0;
-  int packedrecords = 0;
   
-  /* Signal handling, use POSIX calls with standardized semantics */
-  struct sigaction sa;
-  
-  sa.sa_flags = SA_RESTART;
-  sigemptyset (&sa.sa_mask);
-  
-  sa.sa_handler = term_handler;
-  sigaction (SIGINT, &sa, NULL);
-  sigaction (SIGQUIT, &sa, NULL);
-  sigaction (SIGTERM, &sa, NULL);
-  
-  sa.sa_handler = SIG_IGN;
-  sigaction (SIGHUP, &sa, NULL);
-  sigaction (SIGPIPE, &sa, NULL);
-
   /* Process given parameters (command line and parameter file) */
   if (parameter_proc (argc, argv) < 0)
     return -1;
@@ -109,10 +97,6 @@ main (int argc, char **argv)
           return -1;
         }
     }
-  else
-    {
-      ofp = stdout;
-    }
   
   /* Read input MARS files into TraceGroup */
   flp = filelist;
@@ -126,22 +110,18 @@ main (int argc, char **argv)
       flp = flp->next;
     }
   
-  /* Pack data into Mini-SEED records */
-  packedrecords = mst_packgroup (mstg, &record_handler, packreclen, encoding, byteorder,
-				 &packedsamples, 1, verbose-2, NULL);
-  
-  if ( packedrecords < 0 )
+  /* Pack any remaining, possibly all data */
+  if ( ! parseonly )
     {
-      fprintf (stderr, "Error packing data\n");
-    }
-  else
-    {
+      packtraces (1);
+      packedtraces += mstg->numtraces;
+      
       fprintf (stderr, "Packed %d trace(s) of %d samples into %d records\n",
-	       mstg->numtraces, packedsamples, packedrecords);
+	       packedtraces, packedsamples, packedrecords);
+      
+      fprintf (stderr, "All data samples have been scaled by 10 and are now 10s of microvolts!\n");
     }
-
-  fprintf (stderr, "All data samples have been scaled by 10!\n");
-  
+    
   /* Make sure everything is cleaned up */
   mst_freegroup (&mstg);
   
@@ -150,6 +130,46 @@ main (int argc, char **argv)
   
   return 0;
 }  /* End of main() */
+
+
+/***************************************************************************
+ * packtraces:
+ *
+ * Pack all traces in a group using per-Trace templates.
+ *
+ * Returns 0 on success, and -1 on failure
+ ***************************************************************************/
+static void
+packtraces (flag flush)
+{
+  Trace *mst;
+  int trpackedsamples = 0;
+  int trpackedrecords = 0;
+  
+  mst = mstg->traces;
+  while ( mst )
+    {
+      if ( mst->numsamples <= 0 )
+        {
+          mst = mst->next;
+          continue;
+        }
+      
+      trpackedrecords = mst_pack (mst, &record_handler, packreclen, encoding, byteorder,
+                                  &trpackedsamples, flush, verbose-2, (MSrecord *) mst->private);
+      if ( trpackedrecords < 0 )
+        {
+          fprintf (stderr, "Error packing data\n");
+        }
+      else
+        {
+          packedrecords += trpackedrecords;
+          packedsamples += trpackedsamples;
+        }
+      
+      mst = mst->next;
+    }
+}  /* End of packtraces() */
 
 
 /***************************************************************************
@@ -178,6 +198,20 @@ mars2group (char *mfile, TraceGroup *mstg)
     {
       fprintf (stderr, "Cannot open input file: %s (%s)\n", mfile, strerror(errno));
       return -1;
+    }
+
+  /* Open .mseed output file if needed */
+  if ( ! ofp && ! parseonly )
+    {
+      char mseedoutputfile[1024];
+      snprintf (mseedoutputfile, sizeof(mseedoutputfile), "%s.mseed", mfile);
+      
+      if ( (ofp = fopen (mseedoutputfile, "wb")) == NULL )
+        {
+          fprintf (stderr, "Cannot open output file: %s (%s)\n",
+                   mseedoutputfile, strerror(errno));
+          return -1;
+        }
     }
   
   if ( ! (msr = msr_init(msr)) )
@@ -273,6 +307,20 @@ mars2group (char *mfile, TraceGroup *mstg)
 	}
     }
   
+  /* Unless buffering all files in memory pack any Traces now */
+  if ( ! bufferall && ! parseonly )
+    {
+      packtraces (1);
+      packedtraces += mstg->numtraces;
+      mst_initgroup (mstg);
+    }
+  
+  if ( ofp  && ! outputfile )
+    {
+      fclose (ofp);
+      ofp = 0;
+    }
+  
   if ( hMS )
     marsStreamClose();
   
@@ -314,6 +362,10 @@ parameter_proc (int argcount, char **argvec)
       else if (strcmp (argvec[optind], "-p") == 0)
 	{
 	  parseonly = 1;
+	}
+      else if (strcmp (argvec[optind], "-B") == 0)
+	{
+	  bufferall = 1;
 	}
       else if (strcmp (argvec[optind], "-s") == 0)
 	{
@@ -363,6 +415,13 @@ parameter_proc (int argcount, char **argvec)
 	}
     }
 
+  /* Make sure an output file was specified if buffering all input */
+  if ( bufferall && ! outputfile )
+    {
+      fprintf (stderr, "Need to specify output file with -o if using -B\n");
+      exit (1);
+    }
+  
   /* Make sure an input files were specified */
   if ( filelist == 0 )
     {
@@ -371,11 +430,46 @@ parameter_proc (int argcount, char **argvec)
       fprintf (stderr, "Try %s -h for usage\n", PACKAGE);
       exit (1);
     }
-
+  
   /* Report the program version */
   if ( verbose )
     fprintf (stderr, "%s version: %s\n", PACKAGE, VERSION);
-
+  
+  /* Check the input files for any list files, if any are found
+   * remove them from the list and add the contained list */
+  if ( filelist )
+    {
+      struct listnode *prevln, *ln;
+      
+      prevln = ln = filelist;
+      while ( ln != 0 )
+        {
+          if ( *(ln->data) == '@' )
+            {
+              /* Remove this node from the list */
+              if ( ln == filelist )
+                filelist = ln->next;
+              else
+                prevln->next = ln->next;
+              
+              /* Read list file, skip the '@' first character */
+              readlistfile (ln->data + 1);
+              
+              /* Free memory for this node */
+              if ( ln->key )
+                free (ln->key);
+              free (ln->data);
+              free (ln);
+            }
+          else
+            {
+              prevln = ln;
+            }
+          
+          ln = ln->next;
+        }
+    }
+  
   return 0;
 }  /* End of parameter_proc() */
 
@@ -411,6 +505,91 @@ getoptval (int argcount, char **argvec, int argopt)
   fprintf (stderr, "Option %s requires a value\n", argvec[argopt]);
   exit (1);
 }  /* End of getoptval() */
+
+
+/***************************************************************************
+ * readlistfile:
+ * Read a list of files from a file and add them to the filelist for
+ * input data.
+ *
+ * Returns the number of file names parsed from the list or -1 on error.
+ ***************************************************************************/
+static int
+readlistfile (char *listfile)
+{
+  FILE *fp;
+  char line[1024];
+  char *ptr;
+  int  filecnt = 0;
+  int  nonspace;
+
+  char filename[1024];
+  int  fields;
+  
+  /* Open the list file */
+  if ( (fp = fopen (listfile, "rb")) == NULL )
+    {
+      if (errno == ENOENT)
+        {
+          fprintf (stderr, "Could not find list file %s\n", listfile);
+          return -1;
+        }
+      else
+        {
+          fprintf (stderr, "Error opening list file %s: %s\n",
+                   listfile, strerror (errno));
+          return -1;
+        }
+    }
+  
+  if ( verbose )
+    fprintf (stderr, "Reading list of input files from %s\n", listfile);
+  
+  while ( (fgets (line, sizeof(line), fp)) !=  NULL)
+    {
+      /* Truncate line at first \r or \n and count non-space characters */
+      nonspace = 0;
+      ptr = line;
+      while ( *ptr )
+        {
+          if ( *ptr == '\r' || *ptr == '\n' || *ptr == '\0' )
+            {
+              *ptr = '\0';
+              break;
+            }
+          else if ( *ptr != ' ' )
+            {
+              nonspace++;
+            }
+          
+          ptr++;
+        }
+      
+      /* Skip empty lines */
+      if ( nonspace == 0 )
+        continue;
+      
+      fields = sscanf (line, "%s", filename);
+      
+      if ( fields != 1 )
+        {
+          fprintf (stderr, "Error parsing filename from: %s\n", line);
+          continue;
+        }
+      
+      if ( verbose > 1 )
+        fprintf (stderr, "Adding '%s' to input file list\n", filename);
+      
+      addnode (&filelist, NULL, filename);
+      filecnt++;
+      
+      continue;
+    }
+  
+  fclose (fp);
+  
+  return filecnt;
+}  /* End readlistfile() */
 
 
 /***************************************************************************
@@ -512,13 +691,14 @@ usage (void)
 	   " -h             Show this usage message\n"
 	   " -v             Be more verbose, multiple flags can be used\n"
 	   " -p             Parse MARS data only, do not write Mini-SEED\n"
+	   " -B             Buffer data before packing, default packs at end of each file\n"
 	   " -s stacode     Force the SEED station code, default is from input data\n"
 	   " -n netcode     Force the SEED network code, default is blank\n"
 	   " -l loccode     Force the SEED location code, default is blank\n"
 	   " -r bytes       Specify record length in bytes for packing, default: 4096\n"
 	   " -e encoding    Specify SEED encoding format for packing, default: 11 (Steim2)\n"
 	   " -b byteorder   Specify byte order for packing, MSBF: 1 (default), LSBF: 0\n"
-	   " -o outfile     Specify the output file, default is stdout.\n"
+	   " -o outfile     Specify the output file, default is <inputfile>.mseed\n"
 	   " -t chanset     Transmogrify channel numbers to common channel codes:\n"
 	   "                   0: 0->Z, 1->N, 2->E\n"
 	   "                   1: 0->SHZ, 1->SHN, 2->SHE\n"
@@ -530,6 +710,8 @@ usage (void)
 	   "                  e.g.: '-T 0=LLZ -T 1=LLN -T 2=LLZ'\n"
 	   "\n"
 	   " file(s)        File(s) of MARS input data\n"
+	   "                  If a file is prefixed with an '@' it is assumed to contain\n"
+           "                  a list of data files to be read, one file  per line.\n"
 	   "\n"
 	   "Supported Mini-SEED encoding formats:\n"
 	   " 1  : 16-bit integers (only works if samples can be represented in 16-bits)\n"
@@ -537,17 +719,7 @@ usage (void)
 	   " 10 : Steim 1 compression\n"
 	   " 11 : Steim 2 compression\n"
 	   "\n"
-	   "Note: resulting sample values are 10s of microvolts\n"
+	   "NOTE:\n"
+	   "Resulting sample values will be scaled by 10 making them 10s of microvolts\n"
 	   "\n");
 }  /* End of usage() */
-
-
-/***************************************************************************
- * term_handler:
- * Signal handler routine.
- ***************************************************************************/
-static void
-term_handler (int sig)
-{
-  exit (0);
-}

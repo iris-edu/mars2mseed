@@ -1,0 +1,127 @@
+.TH MARS2MSEED 1 2005/10/27
+.SH NAME
+MARS 88/lite data to Mini-SEED converter
+
+.SH SYNOPSIS
+.nf
+mars2mseed [options] file1 [file2 file3 ...]
+
+.fi
+.SH DESCRIPTION
+\fBmars2mseed\fP converts MARS-88 and MARSlite waveform data files to
+Mini-SEED.  One or more input files may be specified on the command
+line.  If an input file name is prefixed with an '@' character the
+file is assumed to contain a list of input data files, see \fILIST
+FILES\fP below.
+
+By default the MARS channel numbers are translated directly into a
+SEED channel codes.  This is not the expected SEED convention.  Some
+preset channel mappings can be specified with the -t option.
+Futhermore custom mappings may be explicitly specified using the -T
+option.
+
+By default all data from a given input file is written to a file of
+the same name with a ".mseed" suffix.  The output data may be
+re-directed to a single file or stdout using the -o option.
+
+.SH OPTIONS
+
+.IP "-V         "
+Print program version and exit.
+
+.IP "-h         "
+Print program usage and exit.
+
+.IP "-v         "
+Be more verbose.  This flag can be used multiple times ("-v -v" or
+"-vv") for more verbosity.
+
+.IP "-p         "
+Parse the input MARS data only, do not buffer data or write Mini-SEED.
+This is useful to inspect the input data without any conversion.
+
+.IP "-B         "
+Buffer all input data into memory before packing it into Mini-SEED
+records.  The host computer must have enough memory to store all of
+the data.  By default the program will flush it's data buffers after
+each input file is read.  An output file must be specified with the
+-o option when using this option.
+
+.IP "-s \fIstacode\fP"
+Specify the SEED station code to use.  If not specified the station
+information from the input data is used.  In the case of MARS-88 data
+this is usually a 4 digit number.  In the case of MARSlite data this
+is usually a 1-4 character station code.
+
+.IP "-n \fInetcode\fP"
+Specify the SEED network code to use, if not specified the network
+code will be blank.  It is highly recommended to specify a network
+code.
+
+.IP "-l \fIloccode\fP"
+Specify the SEED location code to use, if not specified the location
+code will be blank.
+
+.IP "-r \fIbytes\fP"
+Specify the Mini-SEED record length in \fIbytes\fP, default is 4096.
+
+.IP "-e \fIencoding\fP"
+Specify the Mini-SEED data encoding format, default is 11 (Steim-2
+compression).  Other supported encoding formats include 10 (Steim-1
+compression), 1 (16-bit integers) and 3 (32-bit integers).  The 16-bit
+integers encoding should only be used if all data samples can be
+represented in 16 bits.
+
+.IP "-b \fIbyteorder\fP"
+Specify the Mini-SEED byte order, default is 1 (big-endian or most
+significant byte first).  The other option is 0 (little-endian or
+least significant byte first).  It is highly recommended to always
+create big-endian SEED.
+
+.IP "-o \fIoutfile\fP"
+Write all Mini-SEED records to \fIoutfile\fP, if \fIoutfile\fP is a
+single dash (-) then all Mini-SEED output will go to stdout.  All
+diagnostic output from the program is written to stderr and should
+never get mixed with data going to stdout.
+
+.IP "-t \fIchanset\fP"
+Use the specified preset channel number to code mapping.  The
+\fIchanset\fP value dictates the following mappings:
+.nf
+  0: 0->Z, 1->N, 2->E
+  1: 0->SHZ, 1->SHN, 2->SHE
+  2: 0->BHZ, 1->BHN, 2->BHE
+  3: 0->HHZ, 1->HHN, 2->HHE
+  4: 0->EHZ, 1->EHN, 2->EHE
+.fi
+
+.IP "-T \fI#=chan\fP"
+Specify an explicit channel number to channel code mapping, this
+option may be used several times (e.g. '-T 0=SHZ -T 1=SHN -T 2=SHE').
+
+.SH LIST FILES
+If an input file is prefixed with an '@' character the file is assumed
+to contain a list of file for input, one file per line.
+
+Multiple list files can be combined with multiple input files on the
+command line.
+
+An example of a simple list file:
+
+.nf
+mars88.data
+marslite.data
+.fi
+
+.SH ABOUT MARS
+The MARS line of dataloggers is designed and produced by Lennartz
+Electronic GmbH: http://www.lennartz-electronic.de/
+
+.SH AUTHOR
+.nf
+Chad Trabant
+IRIS Data Management Center
+
+Thanks to Aladino Govoni from OGS for providing most of the base code
+for reading and parsing MARS data blocks.
+.fi

@@ -1,7 +1,15 @@
+2005.300: 0.4
+	- Update libmseed to 1.4.1.
+	- Any input file prefixed with '@' is assumed to be a list file.
+	- Default output file is now <inputfile>.mseed instead of stdout.
+	- Pack data after reading each file.
+	- Add option to buffer all data in memory before packing.
+	- Remove signal handling, not needed.
+
 2005.270: 0.3
 	- Add EH[ZNE] preset mappings.	
 	- Add custom channel number to channel codes mapping ability.
 	- Add warning message that all samples have been scaled.
-	- update to libmseed 1.2.
+	- Update to libmseed 1.2.
 
 2005.???: versions 0.1 and 0.2.

@@ -4,6 +4,7 @@
 	- Default output file is now <inputfile>.mseed instead of stdout.
 	- Pack data after reading each file.
 	- Add option to buffer all data in memory before packing.
+	- Add man page.
 	- Remove signal handling, not needed.
 
 2005.270: 0.3

@@ -1,3 +1,34 @@
+2005.299: 1.4.1
+	- In mst_findadjacent() do not perform the time and sample
+	rate tolerance checks if the tolerance is specified as -2.0.
+	- Remove the msi.c example program, it has diverged from the
+	separate released msi.
+
+2005.292: 1.4
+	- In mst_addmsr() and mst_addspan() test if data sample
+	memory needs to be moved before moving, allows adding an
+	msr to a trace which has no data samples (e.g. a flushing
+	pack has been done).
+	- Do not try to pack Traces with numsamples==0 in
+	mst_packgroup().
+	
+2005.289:
+	- Add check for sample count mismatch and decrement
+	mst->samplecnt when packing in mst_pack().
+	- Free mst->private in mst_init().
+
+2005.271: 1.3
+	- Add lmplatform.[ch] to hold platform dependent defines
+	and portability routines.
+	- Create lmp_ftello() portable routines and use it.
+	- Change all uses of fopen() to include a 'b' in the mode
+	in order to open files in "binary" mode on Win32.
+	- Add Makefile.wat for Open Watcom's wmake.
+	- Add Makefile.win for Microsoft's nmake.
+	- Test using Open Watcom 1.3 under Win32 (Windows XP).
+	- Add 'dynamic' target in Makefile to build a dynamic lib
+        on Mac OSX.
+ 
 2005.269: 1.2
 	- Update many unpacking routines so that the MS_SAMPMISMATCH
 	error code is correctly returned and that none of the errors

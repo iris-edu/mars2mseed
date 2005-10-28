@@ -4,8 +4,9 @@
 	- Default output file is now <inputfile>.mseed instead of stdout.
 	- Pack data after reading each file.
 	- Add option to buffer all data in memory before packing.
-	- Add man page.
 	- Remove signal handling, not needed.
+	- Add man page.
+	- Add Win32 Makefiles.
 
 2005.270: 0.3
 	- Add EH[ZNE] preset mappings.	

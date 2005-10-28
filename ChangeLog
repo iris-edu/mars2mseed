@@ -6,7 +6,7 @@
 	- Add option to buffer all data in memory before packing.
 	- Remove signal handling, not needed.
 	- Add man page.
-	- Add Win32 Makefiles.
+	- Add Win32 Makefiles, test with Open Watcom 1.3.
 
 2005.270: 0.3
 	- Add EH[ZNE] preset mappings.	

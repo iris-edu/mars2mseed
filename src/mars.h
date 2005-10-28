@@ -1,12 +1,9 @@
 /*
-$Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.1.1.1 2005-05-09 03:48:01 chad Exp $
+$Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:24 chad Exp $
 */
 #ifndef MARS_H_
  #define MARS_H_
 
- #include <stddef.h>
- #include <sys/types.h> 
- 
  /* typedef for TIMES structure */
  /* low nibble: Sync Mode. These are the same values used inside MARS-88! */
  #define SM_NOSYNC 0x01   /* Sync_mode: none             */

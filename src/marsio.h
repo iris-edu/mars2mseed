@@ -1,14 +1,14 @@
 /*
-$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.2 2005-10-28 04:14:52 chad Exp $
+$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.3 2005-10-28 04:23:25 chad Exp $
 */
 #ifndef MARSIO_H_
  #define MARSIO_H_
 
- #include <stddef.h>
- #include <unistd.h>
  #include <stdio.h>
  #include <time.h>
  
+ #include <libmseed.h>
+
  #include "mars.h"
  
  #define msStreamActive       0x00000001 

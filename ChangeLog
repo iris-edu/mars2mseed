@@ -1,5 +1,5 @@
 2005.300: 0.4
-	- Update libmseed to 1.4.1.
+	- Update libmseed to 1.4.2.
 	- Any input file prefixed with '@' is assumed to be a list file.
 	- Default output file is now <inputfile>.mseed instead of stdout.
 	- Pack data after reading each file.

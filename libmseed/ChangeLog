@@ -1,3 +1,7 @@
+2005.300: 1.4.2
+	- Include sys/types.h for Win32 systems in lmplatform.h and
+	do not typedef off_t.
+
 2005.299: 1.4.1
 	- In mst_findadjacent() do not perform the time and sample
 	rate tolerance checks if the tolerance is specified as -2.0.

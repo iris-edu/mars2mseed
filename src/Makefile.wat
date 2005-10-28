@@ -18,7 +18,7 @@ INCS = -I..\libmseed
 all: $(BIN)
 
 $(BIN):	mars2mseed.obj marsio.obj
-	wlink $(lflags) name $(BIN) file {mars2mseed.obj}
+	wlink $(lflags) name $(BIN) file {mars2mseed.obj marsio.obj}
 
 # Source dependencies:
 mars2mseed.obj:	mars2mseed.c marsio.h

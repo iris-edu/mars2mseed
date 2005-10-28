@@ -1,12 +1,10 @@
 /*
-$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.1.1.1 2005-05-09 03:48:01 chad Exp $
+$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.2 2005-10-28 04:14:52 chad Exp $
 */
 #ifndef MARSIO_H_
  #define MARSIO_H_
 
  #include <stddef.h>
- #include <sys/types.h>
- #include <sys/stat.h>
  #include <unistd.h>
  #include <stdio.h>
  #include <time.h>

@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2005.300
+ * modified 2006.182
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "0.4"
+#define VERSION "1.0dev"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -37,7 +37,7 @@ struct listnode {
 };
 
 static void packtraces (flag flush);
-static int mars2group (char *mfile, TraceGroup *mstg);
+static int mars2group (char *mfile, MSTraceGroup *mstg);
 static int parameter_proc (int argcount, char **argvec);
 static char *getoptval (int argcount, char **argvec, int argopt);
 static int readlistfile (char *listfile);
@@ -65,7 +65,7 @@ struct listnode *filelist = 0;
 /* A list of component to channel translations */
 struct listnode *chanlist = 0;
 
-static TraceGroup *mstg = 0;
+static MSTraceGroup *mstg = 0;
 
 static int packedtraces  = 0;
 static int packedsamples = 0;
@@ -80,7 +80,7 @@ main (int argc, char **argv)
   if (parameter_proc (argc, argv) < 0)
     return -1;
   
-  /* Init TraceGroup */
+  /* Init MSTraceGroup */
   mstg = mst_initgroup (mstg);
   
   /* Open the output file if specified otherwise stdout */
@@ -98,7 +98,7 @@ main (int argc, char **argv)
         }
     }
   
-  /* Read input MARS files into TraceGroup */
+  /* Read input MARS files into MSTraceGroup */
   flp = filelist;
   while ( flp != 0 )
     {
@@ -121,7 +121,7 @@ main (int argc, char **argv)
       
       fprintf (stderr, "All data samples have been scaled by 10 and are now 10s of microvolts!\n");
     }
-    
+  
   /* Make sure everything is cleaned up */
   mst_freegroup (&mstg);
   
@@ -135,14 +135,14 @@ main (int argc, char **argv)
 /***************************************************************************
  * packtraces:
  *
- * Pack all traces in a group using per-Trace templates.
+ * Pack all traces in a group using per-MSTrace templates.
  *
  * Returns 0 on success, and -1 on failure
  ***************************************************************************/
 static void
 packtraces (flag flush)
 {
-  Trace *mst;
+  MSTrace *mst;
   int trpackedsamples = 0;
   int trpackedrecords = 0;
   
@@ -156,7 +156,7 @@ packtraces (flag flush)
         }
       
       trpackedrecords = mst_pack (mst, &record_handler, packreclen, encoding, byteorder,
-                                  &trpackedsamples, flush, verbose-2, (MSrecord *) mst->private);
+                                  &trpackedsamples, flush, verbose-2, (MSRecord *) mst->private);
       if ( trpackedrecords < 0 )
         {
           fprintf (stderr, "Error packing data\n");
@@ -175,16 +175,16 @@ packtraces (flag flush)
 /***************************************************************************
  * mars2group:
  *
- * Read a MARS data file and add data samples to a TraceGroup.
- * As the data is read in a MSrecord struct is used as a holder for
+ * Read a MARS data file and add data samples to a MSTraceGroup.
+ * As the data is read in a MSRecord struct is used as a holder for
  * the input information.
  *
  * Returns 0 on success, and -1 on failure
  ***************************************************************************/
 static int
-mars2group (char *mfile, TraceGroup *mstg)
+mars2group (char *mfile, MSTraceGroup *mstg)
 {
-  MSrecord *msr = 0;
+  MSRecord *msr = 0;
   struct listnode *clp;
   int retval = 0;
   char mapped;
@@ -216,7 +216,7 @@ mars2group (char *mfile, TraceGroup *mstg)
   
   if ( ! (msr = msr_init(msr)) )
     {
-      fprintf (stderr, "Cannot initialize MSrecord strcture\n");
+      fprintf (stderr, "Cannot initialize MSRecord strcture\n");
       return -1;
     }
   
@@ -239,7 +239,7 @@ mars2group (char *mfile, TraceGroup *mstg)
 	  for( hD=hData, gain=marsBlockGetGain(hMS->block); hD < (hData+marsBlockSamples); hD++)
 	    *hD *= (gain*10);
 	  
-	  /* Populate a MSrecord and add data to TraceGroup */
+	  /* Populate a MSRecord and add data to MSTraceGroup */
 	  msr->datasamples = hData;
 	  msr->numsamples = marsBlockSamples;
 	  msr->samplecnt = marsBlockSamples;
@@ -296,18 +296,18 @@ mars2group (char *mfile, TraceGroup *mstg)
 		       msr->network, msr->station,  msr->location, msr->channel);
 	    }
 	  
-	  if ( ! mst_addmsrtogroup (mstg, msr, -1.0, -1.0) )
+	  if ( ! mst_addmsrtogroup (mstg, msr, 0, -1.0, -1.0) )
 	    {
-	      fprintf (stderr, "[%s] Error adding samples to TraceGroup\n", mfile);
+	      fprintf (stderr, "[%s] Error adding samples to MSTraceGroup\n", mfile);
 	    }
 	  
-	  /* Cleanup and reset MSrecord state */
+	  /* Cleanup and reset MSRecord state */
 	  msr->datasamples = 0;
 	  msr = msr_init (msr);
 	}
     }
   
-  /* Unless buffering all files in memory pack any Traces now */
+  /* Unless buffering all files in memory pack any MSTraces now */
   if ( ! bufferall && ! parseonly )
     {
       packtraces (1);

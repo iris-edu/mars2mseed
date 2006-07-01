@@ -18,7 +18,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified: 2005.271
+ * modified: 2006.082
  ***************************************************************************/
 
 #ifndef LMPLATFORM_H
@@ -90,6 +90,7 @@ extern "C" {
 
   #define snprintf _snprintf
   #define vsnprintf _vsnprintf
+  #define strcasecmp _stricmp
   #define strncasecmp _strnicmp
 
   typedef signed char int8_t;
@@ -113,8 +114,9 @@ extern "C" {
 
 #endif
 
-extern const char *lmp_strerror(void);
-extern off_t lmp_ftello(FILE *stream);
+extern const char *lmp_strerror (void);
+extern off_t lmp_ftello (FILE *stream);
+extern int lmp_fseeko (FILE *stream, off_t offset, int whence);
 
 #ifdef __cplusplus
 }

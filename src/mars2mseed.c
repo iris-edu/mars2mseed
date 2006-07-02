@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.0dev"
+#define VERSION "1.0"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */

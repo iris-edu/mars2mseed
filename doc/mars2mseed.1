@@ -1,4 +1,4 @@
-.TH MARS2MSEED 1 2005/10/27
+.TH MARS2MSEED 1 2006/07/18
 .SH NAME
 MARS 88/lite data to Mini-SEED converter
 
@@ -46,6 +46,12 @@ records.  The host computer must have enough memory to store all of
 the data.  By default the program will flush it's data buffers after
 each input file is read.  An output file must be specified with the
 -o option when using this option.
+
+.IP "-P         "
+Pack data after each input block is read.  This minimizes the memory
+needed for internal data buffers and allows very large input files to
+be converted.  By default the program will flush it's data buffers
+after each input file is read.
 
 .IP "-s \fIstacode\fP"
 Specify the SEED station code to use.  If not specified the station

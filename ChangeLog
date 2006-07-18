@@ -1,3 +1,7 @@
+2006.199:
+	- Add -P option to pack data after each block is read in to
+	minimize memory usage, allowing large file conversion.
+
 2006.183: 1.0
 	- Update to libmseed 1.7.
 

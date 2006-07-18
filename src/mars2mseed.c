@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.182
+ * modified 2006.199
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.0"
+#define VERSION "1.1dev"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -52,6 +52,7 @@ static int   packreclen  = -1;
 static int   encoding    = -1;
 static int   byteorder   = -1;
 static char  bufferall   = 0;
+static char  packblock   = 0;
 static char *forcesta    = 0;
 static char *forcenet    = 0;
 static char *forceloc    = 0;
@@ -154,7 +155,7 @@ packtraces (flag flush)
           mst = mst->next;
           continue;
         }
-      
+
       trpackedrecords = mst_pack (mst, &record_handler, packreclen, encoding, byteorder,
                                   &trpackedsamples, flush, verbose-2, (MSRecord *) mst->private);
       if ( trpackedrecords < 0 )
@@ -301,6 +302,12 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	      fprintf (stderr, "[%s] Error adding samples to MSTraceGroup\n", mfile);
 	    }
 	  
+	  /* Pack whatever can be packed */
+	  if ( packblock )
+	    {
+	      packtraces (0);
+	    }
+	  
 	  /* Cleanup and reset MSRecord state */
 	  msr->datasamples = 0;
 	  msr = msr_init (msr);
@@ -366,6 +373,10 @@ parameter_proc (int argcount, char **argvec)
       else if (strcmp (argvec[optind], "-B") == 0)
 	{
 	  bufferall = 1;
+	}
+      else if (strcmp (argvec[optind], "-P") == 0)
+	{
+	  packblock = 1;
 	}
       else if (strcmp (argvec[optind], "-s") == 0)
 	{
@@ -694,6 +705,7 @@ usage (void)
 	   " -v             Be more verbose, multiple flags can be used\n"
 	   " -p             Parse MARS data only, do not write Mini-SEED\n"
 	   " -B             Buffer data before packing, default packs at end of each file\n"
+	   " -P             Pack data after each block, default packs at end of each file\n"
 	   " -s stacode     Force the SEED station code, default is from input data\n"
 	   " -n netcode     Force the SEED network code, default is blank\n"
 	   " -l loccode     Force the SEED location code, default is blank\n"

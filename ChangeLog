@@ -1,3 +1,6 @@
+2006.201:
+	- Correct message regarding output scaling, output is 100 nVolts.
+
 2006.199:
 	- Add -P option to pack data after each block is read in to
 	minimize memory usage, allowing large file conversion.

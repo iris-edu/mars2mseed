@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.199
+ * modified 2006.200
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.1dev"
+#define VERSION "1.1dev2"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -120,7 +120,7 @@ main (int argc, char **argv)
       fprintf (stderr, "Packed %d trace(s) of %d samples into %d records\n",
 	       packedtraces, packedsamples, packedrecords);
       
-      fprintf (stderr, "All data samples have been scaled by 10 and are now 10s of microvolts!\n");
+      fprintf (stderr, "All data samples have been scaled by 10 and are now 100s of nanovolts!\n");
     }
   
   /* Make sure everything is cleaned up */
@@ -236,7 +236,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
       hData = marsBlockDecodeData (hMS->block, &scale);
       
       if ( hData && ! parseonly )
-	{ /* Convert to 10s of microvolts since for at least one gain we can have 0.5 uV */
+	{ /* Convert to 100s of nanovolts since for at least one gain we can have 0.5 uV */
 	  for( hD=hData, gain=marsBlockGetGain(hMS->block); hD < (hData+marsBlockSamples); hD++)
 	    *hD *= (gain*10);
 	  
@@ -734,6 +734,6 @@ usage (void)
 	   " 11 : Steim 2 compression\n"
 	   "\n"
 	   "NOTE:\n"
-	   "Resulting sample values will be scaled by 10 making them 10s of microvolts\n"
+	   "Resulting sample values will be scaled by 10 making them 100s of nanovolts\n"
 	   "\n");
 }  /* End of usage() */

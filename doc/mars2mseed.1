@@ -1,4 +1,4 @@
-.TH MARS2MSEED 1 2006/07/18
+.TH MARS2MSEED 1 2006/07/26
 .SH NAME
 MARS 88/lite data to Mini-SEED converter
 
@@ -43,15 +43,9 @@ This is useful to inspect the input data without any conversion.
 .IP "-B         "
 Buffer all input data into memory before packing it into Mini-SEED
 records.  The host computer must have enough memory to store all of
-the data.  By default the program will flush it's data buffers after
-each input file is read.  An output file must be specified with the
--o option when using this option.
-
-.IP "-P         "
-Pack data after each input block is read.  This minimizes the memory
-needed for internal data buffers and allows very large input files to
-be converted.  By default the program will flush it's data buffers
-after each input file is read.
+the data.  By default the program will pack data as it's read in and
+flush it's data buffers after each input file is read.  An output file
+must be specified with the -o option when using this option.
 
 .IP "-s \fIstacode\fP"
 Specify the SEED station code to use.  If not specified the station
@@ -89,6 +83,17 @@ Write all Mini-SEED records to \fIoutfile\fP, if \fIoutfile\fP is a
 single dash (-) then all Mini-SEED output will go to stdout.  All
 diagnostic output from the program is written to stderr and should
 never get mixed with data going to stdout.
+
+.IP "-g \fIscaling\fP"
+Specify a scaling to apply to the sample values.  The default units
+for MARS data is microvolts with some potential gains that will result
+in non-integer values; scaling is required to store the values as
+integer data in Mini-SEED without truncation.  By default data are
+scaled by 8 resulting in amplitude units of 125 nanovolts.  Other
+recommended possibilities include 1=microvolts (no scaling), 2=500 nV,
+4=250 nV, 10=100nV.  It is important to chose a scaling that will not
+trucate any sample values.  It is also important to make certain any
+metadata for the converted data includes the scaling used.
 
 .IP "-t \fIchanset\fP"
 Use the specified preset channel number to code mapping.  The

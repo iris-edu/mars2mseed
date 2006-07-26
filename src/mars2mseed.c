@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.200
+ * modified 2006.207
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.1dev2"
+#define VERSION "1.1dev3"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -51,8 +51,8 @@ static int   parseonly   = 0;
 static int   packreclen  = -1;
 static int   encoding    = -1;
 static int   byteorder   = -1;
+static int   scaling     = 8;
 static char  bufferall   = 0;
-static char  packblock   = 0;
 static char *forcesta    = 0;
 static char *forcenet    = 0;
 static char *forceloc    = 0;
@@ -114,13 +114,17 @@ main (int argc, char **argv)
   /* Pack any remaining, possibly all data */
   if ( ! parseonly )
     {
-      packtraces (1);
-      packedtraces += mstg->numtraces;
-      
+      if ( bufferall )
+	{
+	  packtraces (1);
+	  packedtraces += mstg->numtraces;
+	}
+
       fprintf (stderr, "Packed %d trace(s) of %d samples into %d records\n",
 	       packedtraces, packedsamples, packedrecords);
       
-      fprintf (stderr, "All data samples have been scaled by 10 and are now 100s of nanovolts!\n");
+      fprintf (stderr, "All data samples have been scaled by %d and are now %d nanovolts!\n",
+	       scaling, (1000/scaling));
     }
   
   /* Make sure everything is cleaned up */
@@ -188,10 +192,11 @@ mars2group (char *mfile, MSTraceGroup *mstg)
   MSRecord *msr = 0;
   struct listnode *clp;
   int retval = 0;
+  int truncwarn = 0;
   char mapped;
   
   marsStream *hMS;
-  long	     *hData, *hD, scale;
+  long int   *hData, *hD, scale;
   double      gain;
   
   /* Open MARS data file */
@@ -224,7 +229,8 @@ mars2group (char *mfile, MSTraceGroup *mstg)
   /* Loop over MARS blocks */
   while ( (hMS = marsStreamGetNextBlock(verbose)) != NULL )
     {
-      if ( verbose >= 4 ) marsStreamDumpBlock (hMS);
+      if ( verbose >= 4 )
+	marsStreamDumpBlock (hMS);
       
       if ( verbose >= 2 )
 	fprintf (stderr, "MB sta='%s' chan=%d samprate=%g scale=%d time=%ld c2uV=%ld maxamp=%d\n",
@@ -236,9 +242,23 @@ mars2group (char *mfile, MSTraceGroup *mstg)
       hData = marsBlockDecodeData (hMS->block, &scale);
       
       if ( hData && ! parseonly )
-	{ /* Convert to 100s of nanovolts since for at least one gain we can have 0.5 uV */
-	  for( hD=hData, gain=marsBlockGetGain(hMS->block); hD < (hData+marsBlockSamples); hD++)
-	    *hD *= (gain*10);
+	{
+	  /* Scale data samples, some potential gain values can result in non-integer samples */
+	  gain = marsBlockGetGain(hMS->block);
+	  
+	  if ( verbose >= 2 )
+	    fprintf (stderr, "Applying gain: %f c/uV and scaling: %d for total: %f\n",
+		     gain, scaling, (gain*scaling));
+	  
+	  if ( ( (double)(scaling/gain) - (int)(scaling/gain) )  && ! truncwarn)
+	    {
+	      fprintf (stderr, "WARNING: sample value truncation occuring, change scaling\n");
+	      fprintf (stderr, "  Final gain: %f\n", gain*scaling);
+	      truncwarn = 1;
+	    }
+	  
+	  for ( hD=hData; hD < (hData+marsBlockSamples); hD++)
+	    *hD *= (gain*scaling);
 	  
 	  /* Populate a MSRecord and add data to MSTraceGroup */
 	  msr->datasamples = hData;
@@ -297,13 +317,14 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 		       msr->network, msr->station,  msr->location, msr->channel);
 	    }
 	  
+	  /* Add data to MSTraceGroup data buffer */
 	  if ( ! mst_addmsrtogroup (mstg, msr, 0, -1.0, -1.0) )
 	    {
 	      fprintf (stderr, "[%s] Error adding samples to MSTraceGroup\n", mfile);
 	    }
 	  
-	  /* Pack whatever can be packed */
-	  if ( packblock )
+	  /* Pack whatever can be packed if not buffering all data */
+	  if ( ! bufferall )
 	    {
 	      packtraces (0);
 	    }
@@ -314,7 +335,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	}
     }
   
-  /* Unless buffering all files in memory pack any MSTraces now */
+  /* Flush data buffers after each file */
   if ( ! bufferall && ! parseonly )
     {
       packtraces (1);
@@ -374,10 +395,6 @@ parameter_proc (int argcount, char **argvec)
 	{
 	  bufferall = 1;
 	}
-      else if (strcmp (argvec[optind], "-P") == 0)
-	{
-	  packblock = 1;
-	}
       else if (strcmp (argvec[optind], "-s") == 0)
 	{
 	  forcesta = getoptval(argcount, argvec, optind++);
@@ -392,23 +409,27 @@ parameter_proc (int argcount, char **argvec)
 	}
       else if (strcmp (argvec[optind], "-r") == 0)
 	{
-	  packreclen = atoi (getoptval(argcount, argvec, optind++));
+	  packreclen = strtol (getoptval(argcount, argvec, optind++), NULL, 10);
 	}
       else if (strcmp (argvec[optind], "-e") == 0)
 	{
-	  encoding = atoi (getoptval(argcount, argvec, optind++));
+	  encoding = strtol (getoptval(argcount, argvec, optind++), NULL, 10);
 	}
       else if (strcmp (argvec[optind], "-b") == 0)
 	{
-	  byteorder = atoi (getoptval(argcount, argvec, optind++));
+	  byteorder = strtol (getoptval(argcount, argvec, optind++), NULL, 10);
 	}
       else if (strcmp (argvec[optind], "-o") == 0)
 	{
 	  outputfile = getoptval(argcount, argvec, optind++);
 	}
+      else if (strcmp (argvec[optind], "-g") == 0)
+	{
+	  scaling = strtol (getoptval(argcount, argvec, optind++), NULL, 10);
+	}
       else if (strcmp (argvec[optind], "-t") == 0)
 	{
-	  transchan = atoi (getoptval(argcount, argvec, optind++));
+	  transchan = strtol (getoptval(argcount, argvec, optind++), NULL, 10);
 	}
       else if (strcmp (argvec[optind], "-T") == 0)
 	{
@@ -704,8 +725,7 @@ usage (void)
 	   " -h             Show this usage message\n"
 	   " -v             Be more verbose, multiple flags can be used\n"
 	   " -p             Parse MARS data only, do not write Mini-SEED\n"
-	   " -B             Buffer data before packing, default packs at end of each file\n"
-	   " -P             Pack data after each block, default packs at end of each file\n"
+	   " -B             Buffer data in memory before packing\n"
 	   " -s stacode     Force the SEED station code, default is from input data\n"
 	   " -n netcode     Force the SEED network code, default is blank\n"
 	   " -l loccode     Force the SEED location code, default is blank\n"
@@ -713,6 +733,8 @@ usage (void)
 	   " -e encoding    Specify SEED encoding format for packing, default: 11 (Steim2)\n"
 	   " -b byteorder   Specify byte order for packing, MSBF: 1 (default), LSBF: 0\n"
 	   " -o outfile     Specify the output file, default is <inputfile>.mseed\n"
+	   " -g scaling     Specify scaling for output data samples:\n"
+	   "                   1->1000nV, 2->500nV, 4->250nV, 8->125nV (default), 10->100nV\n" 
 	   " -t chanset     Transmogrify channel numbers to common channel codes:\n"
 	   "                   0: 0->Z, 1->N, 2->E\n"
 	   "                   1: 0->SHZ, 1->SHN, 2->SHE\n"
@@ -734,6 +756,6 @@ usage (void)
 	   " 11 : Steim 2 compression\n"
 	   "\n"
 	   "NOTE:\n"
-	   "Resulting sample values will be scaled by 10 making them 100s of nanovolts\n"
+	   "Sample values will be scaled by default and may not necessarily be microvolts\n"
 	   "\n");
 }  /* End of usage() */

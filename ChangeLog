@@ -1,5 +1,10 @@
+2006.207: 
+	- Remove -P option, packing after each block is now default.
+	- Add -g option to specify a scaling factor and make the
+	default scaling 8 which results in amplitude units of 125nV.
+	
 2006.201:
-	- Correct message regarding output scaling, output is 100 nVolts.
+	- Correct message regarding output scaling, output is 100 nV.
 
 2006.199:
 	- Add -P option to pack data after each block is read in to

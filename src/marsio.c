@@ -1,4 +1,6 @@
 /*
+Revision 1.7  2006-07-26 16:55:00-08  ctrabant
+
 Revision 1.6  2005-05-03 14:00:00-08  ctrabant
 
 Revision 1.5  2005-02-17 14:00:00-08  ctrabant
@@ -364,7 +366,7 @@ marsStream *marsStreamOpen (char *name)
       return NULL;
     }
   
-  if ( (MS.hf = fopen(name,"r+b")) == NULL )
+  if ( (MS.hf = fopen(name,"rb")) == NULL )
     {
       fprintf (stderr, "Cannot open file \'%s\' - %s\n", name, strerror(errno));
       return NULL;

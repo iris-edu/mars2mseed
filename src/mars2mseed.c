@@ -66,6 +66,7 @@ struct listnode *filelist = 0;
 /* A list of component to channel translations */
 struct listnode *chanlist = 0;
 
+/* Internal buffer for data streams */
 static MSTraceGroup *mstg = 0;
 
 static int packedtraces  = 0;
@@ -161,7 +162,7 @@ packtraces (flag flush)
         }
 
       trpackedrecords = mst_pack (mst, &record_handler, packreclen, encoding, byteorder,
-                                  &trpackedsamples, flush, verbose-2, (MSRecord *) mst->private);
+                                  &trpackedsamples, flush, verbose-2, NULL);
       if ( trpackedrecords < 0 )
         {
           fprintf (stderr, "Error packing data\n");

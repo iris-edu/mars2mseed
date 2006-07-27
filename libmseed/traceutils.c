@@ -1326,7 +1326,7 @@ mst_pack ( MSTrace *mst, void (*record_handler) (char *, int),
       mst->numsamples -= *packedsamples;
     }
     
-  /* Reinstate preserved values if a template was used otherwise free the MSRecord */
+  /* Reinstate preserved values if a template was used */
   if ( mstemplate )
     {
       msr->starttime = preservestarttime;

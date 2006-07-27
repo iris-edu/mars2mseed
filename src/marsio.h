@@ -1,5 +1,5 @@
 /*
-$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.3 2005-10-28 04:23:25 chad Exp $
+$Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.4 2006-07-27 17:28:00 chad Exp $
 */
 #ifndef MARSIO_H_
  #define MARSIO_H_
@@ -57,13 +57,13 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.3 2005-10-28 04:2
  void marsStreamClose(void);
  void m88SwapBlock(m88Block *blk);
  
- long *marsBlockDecodeData(char *block,long *scale);
+ int *marsBlockDecodeData(char *block,int *scale);
  int marsStreamDumpBlock(marsStream *hMS);
 
  double marsBlockGetGain(char *blk);
- long marsBlockGetScaleFactor(char *blk);
+ int marsBlockGetScaleFactor(char *blk);
  char *mbGetStationCode(char *blk);
- long mbGetStationSerial(char *blk);
+ int mbGetStationSerial(char *blk);
  
  #ifdef __cplusplus
   }

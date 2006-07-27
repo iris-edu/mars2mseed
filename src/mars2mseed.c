@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.207
+ * modified 2006.208
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.1dev3"
+#define VERSION "1.1dev4"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -196,7 +196,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
   char mapped;
   
   marsStream *hMS;
-  long int   *hData, *hD, scale;
+  int        *hData, *hD, scale;
   double      gain;
   
   /* Open MARS data file */
@@ -233,7 +233,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	marsStreamDumpBlock (hMS);
       
       if ( verbose >= 2 )
-	fprintf (stderr, "MB sta='%s' chan=%d samprate=%g scale=%d time=%ld c2uV=%ld maxamp=%d\n",
+	fprintf (stderr, "MB sta='%s' chan=%d samprate=%g scale=%d time=%d c2uV=%d maxamp=%d\n",
 		 mbGetStationCode(hMS->block), mbGetChan(hMS->block),
 		 mbGetSampRate(hMS->block), mbGetScale(hMS->block),
 		 mbGetTime(hMS->block),
@@ -326,6 +326,8 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  /* Pack whatever can be packed if not buffering all data */
 	  if ( ! bufferall )
 	    {
+	      fprintf (stderr, "HERE!!! marsBlockSamples: %d\n", marsBlockSamples);
+
 	      packtraces (0);
 	    }
 	  

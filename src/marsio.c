@@ -1,5 +1,6 @@
 /*
-Revision 1.7  2006-07-26 16:55:00-08  ctrabant
+Revision 1.7  2006-07-27 16:55:00-08  ctrabant
+Change long's to int's to make 64-bit possible
 
 Revision 1.6  2005-05-03 14:00:00-08  ctrabant
 
@@ -35,7 +36,7 @@ Backup revision
 #include "marsio.h"
 
 static marsStream MS;
-static long m88BlockDecodedData[marsBlockSamples];
+static int m88BlockDecodedData[marsBlockSamples];
 static char mbNameBuf[64];
 
 
@@ -68,12 +69,12 @@ char *mbGetStationCode (char *blk)
 }
 
 
-long mbGetStationSerial (char *blk)
+int mbGetStationSerial (char *blk)
 {
   switch( mbGetBlockFormat(blk) )
     {
     case DATABLK_FORMAT:
-      return (long)(((m88Head *)blk)->dev_id & 0xFFFF);
+      return (int)(((m88Head *)blk)->dev_id & 0xFFFF);
       break;
     case LITE_BLOCK_FORMAT:
       return 0;
@@ -87,31 +88,31 @@ long mbGetStationSerial (char *blk)
 }
 
 
-long convert_word (short input, short format)
+int convert_word (short input, short format)
 {
   int exponent;
-  long mantissa;
+  int mantissa;
   int shift;
   
   switch (format)
     {
     case 0:
-      return (long) input;
+      return (int) input;
       break;
     case 1:
       mantissa = input & (~0x03);
       exponent = input & 0x03;
-      return ((long) mantissa << (16 - exponent));
+      return ((int) mantissa << (16 - exponent));
       break;
     case 2:
       mantissa = input & (~0x07);
       exponent = input & 0x07;
-      return ((long) mantissa << (16 - exponent));
+      return ((int) mantissa << (16 - exponent));
       break;
     case 3:
       mantissa = input & (~0x0f);
       exponent = input & 0x0f;
-      return ((long) mantissa << (16 - exponent));
+      return ((int) mantissa << (16 - exponent));
       break;
     /***** MARSlite data format here! ************************/
     case 4:    /* MARSlite format; non-differential and     */
@@ -119,7 +120,7 @@ long convert_word (short input, short format)
       mantissa = input & (~0x07);
       exponent = input & 0x07;
       shift = 2 * exponent;
-      return ((long) mantissa << (16 -shift));
+      return ((int) mantissa << (16 -shift));
       /* your application program will want to convert this to a      */
       /* floating point number, taking the "scale" value into account */
       break;
@@ -130,14 +131,14 @@ long convert_word (short input, short format)
 }
 
 
-long marsBlockGetScaleFactor (char *blk)
+int marsBlockGetScaleFactor (char *blk)
 {
 /*	Negative values means multiply
 	Positive means divide
 	0 invalid
 */
   m88Head   *head=(m88Head *)blk;
-  long 	     scale;
+  int 	     scale;
   
   switch ( mbGetDataFormat(head) )
     {
@@ -192,20 +193,20 @@ double marsBlockGetGain (char *blk)
 }
 
 
-long *marsBlockDecodeData (char *block, long *scale)
+int *marsBlockDecodeData (char *block, int *scale)
 {
-  long *data=m88BlockDecodedData;
+  int *data=m88BlockDecodedData;
   m88Block *buf=(m88Block *)block;
   
   int    i;
   int    data_format;
-  long   mantissa;
+  int   mantissa;
   short  temp;
   int    exponent;
   int	 block_duration;
   int	 samp_interval;
   int    shift;
-  long	 sum = 0;
+  int	 sum = 0;
   short  codedsum;
 
   /*
@@ -247,7 +248,7 @@ long *marsBlockDecodeData (char *block, long *scale)
   case 0:
     for (i = 0; i < 500; i++)
       {
-	data[i] = (long) buf->data[i];
+	data[i] = (int) buf->data[i];
       }
     *scale=(1<<(buf->head).scale);
     break;
@@ -257,7 +258,7 @@ long *marsBlockDecodeData (char *block, long *scale)
 	temp = buf->data[i];
 	mantissa = temp & (~0x03);
 	exponent = temp & 0x03;
-	data[i] = (long) mantissa << (16 - exponent);
+	data[i] = (int) mantissa << (16 - exponent);
       }
     *scale=(1<<(LEm88Base -(buf->head).scale));
     break;
@@ -267,7 +268,7 @@ long *marsBlockDecodeData (char *block, long *scale)
 	temp = buf->data[i];
 	mantissa = temp & (~0x07);
 	exponent = temp & 0x07;
-	data[i] = (long) mantissa << (16 - exponent);
+	data[i] = (int) mantissa << (16 - exponent);
       }
     *scale=(1<<(LEm88Base -(buf->head).scale));
     break;
@@ -277,7 +278,7 @@ long *marsBlockDecodeData (char *block, long *scale)
 	temp = buf->data[i];
 	mantissa = temp & (~0x0f);
 	exponent = temp & 0x0f;
-	data[i] = (long) mantissa << (16 - exponent);
+	data[i] = (int) mantissa << (16 - exponent);
       }
     *scale=(1<<(LEm88Base -(buf->head).scale));
     break;
@@ -289,7 +290,7 @@ long *marsBlockDecodeData (char *block, long *scale)
 	mantissa = temp & (~0x07);
 	exponent = temp & 0x07;
 	shift = 2 * exponent;
-	data[i] = (long) mantissa << (16 - shift);
+	data[i] = (int) mantissa << (16 - shift);
       } 
     *scale=(1<<(LEliteBase -(buf->head).scale));
     break;
@@ -300,7 +301,7 @@ long *marsBlockDecodeData (char *block, long *scale)
 	exponent = temp & 0x07;
 	mantissa = temp & (~0x07);
 	shift = 2 * exponent;
-	data[i] = (long) mantissa << (16 - shift);
+	data[i] = (int) mantissa << (16 - shift);
 	sum += data[i];
 #ifdef DEBUG
 	fprintf(stderr, "%3d: delta %12ld (0x%04x mant 0x%4x exp 0x%1x) sum %12ld\n",
@@ -388,7 +389,7 @@ int marsStreamDumpBlock (marsStream *hMS)
   char 	*hB=hMS->block;
   char   timestr[50];
   hptime_t hptime;
-  long	*hData, *hD, scale;
+  int	*hData, *hD, scale;
   double gain;
   
   if ( isMarsDataBlock(hB) )
@@ -396,7 +397,7 @@ int marsStreamDumpBlock (marsStream *hMS)
       hData = marsBlockDecodeData (hB,&scale);
       hptime = MS_EPOCH2HPTIME (mbGetTime(hB));
       ms_hptime2isotimestr (hptime, timestr);
-      fprintf (stderr, "MB sta='%4s' chano=%d block=%d samp=%d scale=%d time=%s c2uV=%ld maxamp=%d",
+      fprintf (stderr, "MB sta='%4s' chano=%d block=%d samp=%d scale=%d time=%s c2uV=%d maxamp=%d",
 	       mbGetStationCode(hB), mbGetChan(hB), mbGetBlockFormat(hB),
 	       mbGetSamp(hB), mbGetScale(hB),
 	       timestr,
@@ -407,7 +408,7 @@ int marsStreamDumpBlock (marsStream *hMS)
 	{
 	  fprintf (stderr, "\n");
 	  for (hD=hData, gain=marsBlockGetGain(hB); hD<(hData+marsBlockSamples); hD++)
-	    fprintf (stderr, "%ld => %g\n",*hD, *hD*gain);
+	    fprintf (stderr, "%d => %g\n",*hD, *hD*gain);
 	  return 1;
 	}
       else
@@ -438,8 +439,8 @@ marsStream *marsStreamGetNextBlock (int verbose)
 	  }
       
       if ( verbose >= 2 )
-	fprintf (stderr, "MB 0x%016lX : block %ld : %s : 0x%04X : %d : %d : chan %d\n",
-		 (unsigned long)MS.offset,(long)(MS.offset/marsBlockSize),
+	fprintf (stderr, "MB 0x%016X : block %d : %s : 0x%04X : %d : %d : chan %d\n",
+		 (unsigned int)MS.offset,(int)(MS.offset/marsBlockSize),
 		 isMarsDataBlock(MS.block)?"DATA":"MON ",
 		 mbGetMagic(MS.block),mbGetBlockFormat(MS.block),mbGetDataFormat(MS.block),
 		 mbGetChan(MS.block));

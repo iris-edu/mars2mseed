@@ -1,5 +1,5 @@
 /*
-$Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:24 chad Exp $
+$Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.3 2006-07-27 17:28:00 chad Exp $
 */
 #ifndef MARS_H_
  #define MARS_H_
@@ -52,9 +52,9 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:
  typedef struct mlPartitionInfo
  {
   char	  label[8];
-  long 	  offset,uoffset;
-  long 	  length,ulength;
-  long	  dummy,udummy;
+  int 	  offset,uoffset;
+  int 	  length,ulength;
+  int	  dummy,udummy;
  } mlPartInfo;
  
  #define mlDATA	      0
@@ -86,7 +86,7 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:
 
  typedef struct
  {
-    long   time;	    /* time/date in ctime(3C) format */
+    int    time;	    /* time/date in ctime(3C) format */
     short  delta;	    /* time lag in ms                */
     short  mode;	    /* low nibble: sync mode; hi nibble: clock state */
  } leTime;
@@ -94,8 +94,8 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:
  typedef struct
  { 			    /*                         length  total   */
     leFormat format_id;	    /* header-data format ID      4      4     */
-    long   dev_id;	    /* hardware device ID         4      8     */
-    leTime  time;	    /* time, date, time delta,..  8     16     */
+    int    dev_id;	    /* hardware device ID         4      8     */
+    leTime time;	    /* time, date, time delta,..  8     16     */
     char   chno;	    /* channel number             1     17     */
     char   samp_rate;	    /* sampling rate (2^N ms)     1     18     */
     short  maxamp;	    /* max.amplitude              2     20     */
@@ -108,7 +108,7 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.2 2005-10-28 04:23:
   leFormat format_id;       /* header-data format ID       4      4     */
   char     station_name[4]; /* device name                 4      8     */
   char     _rsrvd[4];       /* reserved                    4     12     */
-  long     time;            /* time, date                  4     16     */
+  int      time;            /* time, date                  4     16     */
   char     chno;            /* channel number              1     17     */
   char     samp_interval;   /* sampling interval (2^N ms)  1     18     */
   short    maxamp;          /* max.amplitude               2     20     */

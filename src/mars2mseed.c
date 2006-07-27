@@ -66,7 +66,7 @@ struct listnode *filelist = 0;
 /* A list of component to channel translations */
 struct listnode *chanlist = 0;
 
-/* Internal buffer for data streams */
+/* Internal data buffers */
 static MSTraceGroup *mstg = 0;
 
 static int packedtraces  = 0;

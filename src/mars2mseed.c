@@ -326,8 +326,6 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  /* Pack whatever can be packed if not buffering all data */
 	  if ( ! bufferall )
 	    {
-	      fprintf (stderr, "HERE!!! marsBlockSamples: %d\n", marsBlockSamples);
-
 	      packtraces (0);
 	    }
 	  

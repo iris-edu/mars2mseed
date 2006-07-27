@@ -240,7 +240,7 @@ int *marsBlockDecodeData (char *block, int *scale)
 	 sum = convert_word (codedsum, data_format);
       */
 #ifdef DEBUG
-      fprintf(stderr, "START at %ld (0x%04x\n",sum,(buf->head.dstart)&0xffff);
+      fprintf(stderr, "START at %d (0x%04x\n",sum,(buf->head.dstart)&0xffff);
 #endif
     }	
   

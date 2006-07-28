@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.208
+ * modified 2006.209
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.1dev4"
+#define VERSION "1.1dev5"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -198,7 +198,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
   
   marsStream *hMS;
   int        *hData, *hD, scale;
-  double      gain;
+  double      gain, totalgain, sample;
   
   /* Open MARS data file */
   if ( ! (hMS = marsStreamOpen(mfile) ) )
@@ -247,19 +247,28 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  /* Scale data samples, some potential gain values can result in non-integer samples */
 	  gain = marsBlockGetGain(hMS->block);
 	  
+	  totalgain = gain * scaling;
+	  
 	  if ( verbose >= 2 )
 	    fprintf (stderr, "Applying gain: %f c/uV and scaling: %d for total: %f\n",
-		     gain, scaling, (gain*scaling));
+		     gain, scaling, totalgain);
 	  
-	  if ( ( (double)(scaling/gain) - (int)(scaling/gain) )  && ! truncwarn)
-	    {
-	      fprintf (stderr, "WARNING: sample value truncation occuring, change scaling\n");
-	      fprintf (stderr, "  Final gain: %f\n", gain*scaling);
-	      truncwarn = 1;
-	    }
+	  truncwarn = 0;
 	  
 	  for ( hD=hData; hD < (hData+marsBlockSamples); hD++)
-	    *hD *= (gain*scaling);
+	    {
+	      sample = (*hD) * totalgain;
+	      
+	      if ( ! truncwarn && ( sample - (int)sample ))
+		{
+		  fprintf (stderr, "WARNING: sample value truncation occurring, change scaling\n");
+		  fprintf (stderr, "  Sample: %f, scaling: %d, gain: %g, total gain: %f\n",
+			   sample, scaling, gain, totalgain);
+		  truncwarn = 1;
+		}
+	      
+	      *hD = (int)sample;
+	    }
 	  
 	  /* Populate a MSRecord and add data to MSTraceGroup */
 	  msr->datasamples = hData;

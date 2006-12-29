@@ -1,3 +1,6 @@
+2006.363:
+	- Update to libmseed 2.0rc1 + 2006.363.
+
 2006.209: 
 	- Remove -P option, packing after each block is now default.
 	- Add -g option to specify a scaling factor and make the

@@ -7,7 +7,7 @@ GCC = gcc
 GCCFLAGS = -O2 -Wall -I..
 
 LDFLAGS = -L..
-LDLIBS = -lmseed
+LDLIBS = -lmseed -lm
 
 all: msview msrepack
 
@@ -43,6 +43,12 @@ gcc32debug:
 
 gcc64debug:
 	$(MAKE) "CC=$(GCC)" "CFLAGS=-g -m64 $(GCCFLAGS)"
+
+gcc32gprof:
+	$(MAKE) "CC=$(GCC)" "CFLAGS=-pg -m32 $(GCCFLAGS)"
+
+gcc64gprof:
+	$(MAKE) "CC=$(GCC)" "CFLAGS=-pg -m64 $(GCCFLAGS)"
 
 install:
 	@echo

@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.209
+ * modified 2006.363
  ***************************************************************************/
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.1dev5"
+#define VERSION "1.1dev6"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -94,8 +94,8 @@ main (int argc, char **argv)
         }
       else if ( (ofp = fopen (outputfile, "w")) == NULL )
         {
-          fprintf (stderr, "Cannot open output file: %s (%s)\n",
-                   outputfile, strerror(errno));
+          ms_log (2, "Cannot open output file: %s (%s)\n",
+		  outputfile, strerror(errno));
           return -1;
         }
     }
@@ -105,7 +105,7 @@ main (int argc, char **argv)
   while ( flp != 0 )
     {
       if ( verbose )
-	fprintf (stderr, "Reading %s\n", flp->data);
+	ms_log (1, "Reading %s\n", flp->data);
 
       mars2group (flp->data, mstg);
       
@@ -121,11 +121,11 @@ main (int argc, char **argv)
 	  packedtraces += mstg->numtraces;
 	}
 
-      fprintf (stderr, "Packed %d trace(s) of %d samples into %d records\n",
-	       packedtraces, packedsamples, packedrecords);
+      ms_log (1, "Packed %d trace(s) of %d samples into %d records\n",
+	      packedtraces, packedsamples, packedrecords);
       
-      fprintf (stderr, "All data samples have been scaled by %d and are now %d nanovolts!\n",
-	       scaling, (1000/scaling));
+      ms_log (1, "All data samples have been scaled by %d and are now %d nanovolts!\n",
+	      scaling, (scaling)?(1000/scaling):0);
     }
   
   /* Make sure everything is cleaned up */
@@ -165,7 +165,7 @@ packtraces (flag flush)
                                   &trpackedsamples, flush, verbose-2, NULL);
       if ( trpackedrecords < 0 )
         {
-          fprintf (stderr, "Error packing data\n");
+          ms_log (2, "Cannot pack data\n");
         }
       else
         {
@@ -203,7 +203,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
   /* Open MARS data file */
   if ( ! (hMS = marsStreamOpen(mfile) ) )
     {
-      fprintf (stderr, "Cannot open input file: %s (%s)\n", mfile, strerror(errno));
+      ms_log (2, "Cannot open input file: %s (%s)\n", mfile, strerror(errno));
       return -1;
     }
 
@@ -215,15 +215,15 @@ mars2group (char *mfile, MSTraceGroup *mstg)
       
       if ( (ofp = fopen (mseedoutputfile, "wb")) == NULL )
         {
-          fprintf (stderr, "Cannot open output file: %s (%s)\n",
-                   mseedoutputfile, strerror(errno));
+          ms_log (2, "Cannot open output file: %s (%s)\n",
+		  mseedoutputfile, strerror(errno));
           return -1;
         }
     }
   
   if ( ! (msr = msr_init(msr)) )
     {
-      fprintf (stderr, "Cannot initialize MSRecord strcture\n");
+      ms_log (2, "Cannot initialize MSRecord strcture\n");
       return -1;
     }
   
@@ -234,11 +234,11 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	marsStreamDumpBlock (hMS);
       
       if ( verbose >= 2 )
-	fprintf (stderr, "MB sta='%s' chan=%d samprate=%g scale=%d time=%d c2uV=%d maxamp=%d\n",
-		 mbGetStationCode(hMS->block), mbGetChan(hMS->block),
-		 mbGetSampRate(hMS->block), mbGetScale(hMS->block),
-		 mbGetTime(hMS->block),
-		 marsBlockGetScaleFactor(hMS->block), mbGetMaxamp(hMS->block));
+	ms_log (1, "MB sta='%s' chan=%d samprate=%g scale=%d time=%d c2uV=%d maxamp=%d\n",
+		mbGetStationCode(hMS->block), mbGetChan(hMS->block),
+		mbGetSampRate(hMS->block), mbGetScale(hMS->block),
+		mbGetTime(hMS->block),
+		marsBlockGetScaleFactor(hMS->block), mbGetMaxamp(hMS->block));
       
       hData = marsBlockDecodeData (hMS->block, &scale);
       
@@ -250,8 +250,8 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  totalgain = gain * scaling;
 	  
 	  if ( verbose >= 2 )
-	    fprintf (stderr, "Applying gain: %f c/uV and scaling: %d for total: %f\n",
-		     gain, scaling, totalgain);
+	    ms_log (1, "Applying gain: %f c/uV and scaling: %d for total: %f\n",
+		    gain, scaling, totalgain);
 	  
 	  truncwarn = 0;
 	  
@@ -261,9 +261,9 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	      
 	      if ( ! truncwarn && ( sample - (int)sample ))
 		{
-		  fprintf (stderr, "WARNING: sample value truncation occurring, change scaling\n");
-		  fprintf (stderr, "  Sample: %f, scaling: %d, gain: %g, total gain: %f\n",
-			   sample, scaling, gain, totalgain);
+		  ms_log (1, "WARNING: sample value truncation occurring, change scaling\n");
+		  ms_log (1, "  Sample: %f, scaling: %d, gain: %g, total gain: %f\n",
+			  sample, scaling, gain, totalgain);
 		  truncwarn = 1;
 		}
 	      
@@ -316,21 +316,21 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  /* If MARS88, check for a valid time lag and warn that it's not applied */
 	  if ( mbGetBlockFormat(hMS->block) == DATABLK_FORMAT )
 	    if ( ((m88Head *)(hMS->block))->time.delta != NO_WORD )
-	      fprintf (stderr, "Warning: Time lag of %d ms NOT applied to N: '%s', S: '%s', L: '%s', C: '%s'\n",
-		       ((m88Head *)(hMS->block))->time.delta,
-		       msr->network, msr->station,  msr->location, msr->channel);
+	      ms_log (1, "Warning: Time lag of %d ms NOT applied to N: '%s', S: '%s', L: '%s', C: '%s'\n",
+		      ((m88Head *)(hMS->block))->time.delta,
+		      msr->network, msr->station,  msr->location, msr->channel);
 	  
 	  if ( verbose >= 1 )
 	    {
-	      fprintf (stderr, "[%s] %d samps @ %.4f Hz for N: '%s', S: '%s', L: '%s', C: '%s'\n",
-		       mfile, msr->numsamples, msr->samprate,
-		       msr->network, msr->station,  msr->location, msr->channel);
+	      ms_log (1, "[%s] %d samps @ %.4f Hz for N: '%s', S: '%s', L: '%s', C: '%s'\n",
+		      mfile, msr->numsamples, msr->samprate,
+		      msr->network, msr->station,  msr->location, msr->channel);
 	    }
 	  
 	  /* Add data to MSTraceGroup data buffer */
 	  if ( ! mst_addmsrtogroup (mstg, msr, 0, -1.0, -1.0) )
 	    {
-	      fprintf (stderr, "[%s] Error adding samples to MSTraceGroup\n", mfile);
+	      ms_log (2, "[%s] Cannot add samples to MSTraceGroup\n", mfile);
 	    }
 	  
 	  /* Pack whatever can be packed if not buffering all data */
@@ -385,7 +385,7 @@ parameter_proc (int argcount, char **argvec)
     {
       if (strcmp (argvec[optind], "-V") == 0)
 	{
-	  fprintf (stderr, "%s version: %s\n", PACKAGE, VERSION);
+	  ms_log (1, "%s version: %s\n", PACKAGE, VERSION);
 	  exit (0);
 	}
       else if (strcmp (argvec[optind], "-h") == 0)
@@ -448,7 +448,7 @@ parameter_proc (int argcount, char **argvec)
       else if (strncmp (argvec[optind], "-", 1) == 0 &&
 	       strlen (argvec[optind]) > 1 )
 	{
-	  fprintf(stderr, "Unknown option: %s\n", argvec[optind]);
+	  ms_log (2, "Unknown option: %s\n", argvec[optind]);
 	  exit (1);
 	}
       else
@@ -460,22 +460,22 @@ parameter_proc (int argcount, char **argvec)
   /* Make sure an output file was specified if buffering all input */
   if ( bufferall && ! outputfile )
     {
-      fprintf (stderr, "Need to specify output file with -o if using -B\n");
+      ms_log (2, "Need to specify output file with -o if using -B\n");
       exit (1);
     }
   
   /* Make sure an input files were specified */
   if ( filelist == 0 )
     {
-      fprintf (stderr, "No input files were specified\n\n");
-      fprintf (stderr, "%s version %s\n\n", PACKAGE, VERSION);
-      fprintf (stderr, "Try %s -h for usage\n", PACKAGE);
+      ms_log (2, "No input files were specified\n\n");
+      ms_log (1, "%s version %s\n\n", PACKAGE, VERSION);
+      ms_log (1, "Try %s -h for usage\n", PACKAGE);
       exit (1);
     }
   
   /* Report the program version */
   if ( verbose )
-    fprintf (stderr, "%s version: %s\n", PACKAGE, VERSION);
+    ms_log (1, "%s version: %s\n", PACKAGE, VERSION);
   
   /* Check the input files for any list files, if any are found
    * remove them from the list and add the contained list */
@@ -532,7 +532,7 @@ static char *
 getoptval (int argcount, char **argvec, int argopt)
 {
   if ( argvec == NULL || argvec[argopt] == NULL ) {
-    fprintf (stderr, "getoptval(): NULL option requested\n");
+    ms_log (2, "getoptval(): NULL option requested\n");
     exit (1);
     return 0;
   }
@@ -545,7 +545,7 @@ getoptval (int argcount, char **argvec, int argopt)
   if ( (argopt+1) < argcount && *argvec[argopt+1] != '-' )
     return argvec[argopt+1];
   
-  fprintf (stderr, "Option %s requires a value\n", argvec[argopt]);
+  ms_log (2, "Option %s requires a value, try -h for usage\n", argvec[argopt]);
   exit (1);
   return 0;
 }  /* End of getoptval() */
@@ -575,19 +575,19 @@ readlistfile (char *listfile)
     {
       if (errno == ENOENT)
         {
-          fprintf (stderr, "Could not find list file %s\n", listfile);
+          ms_log (2, "Could not find list file %s\n", listfile);
           return -1;
         }
       else
         {
-          fprintf (stderr, "Error opening list file %s: %s\n",
-                   listfile, strerror (errno));
+          ms_log (2, "Cannot open list file %s: %s\n",
+		  listfile, strerror (errno));
           return -1;
         }
     }
   
   if ( verbose )
-    fprintf (stderr, "Reading list of input files from %s\n", listfile);
+    ms_log (1, "Reading list of input files from %s\n", listfile);
   
   while ( (fgets (line, sizeof(line), fp)) !=  NULL)
     {
@@ -617,12 +617,12 @@ readlistfile (char *listfile)
       
       if ( fields != 1 )
         {
-          fprintf (stderr, "Error parsing filename from: %s\n", line);
+          ms_log (2, "Cannot parse filename from: %s\n", line);
           continue;
         }
       
       if ( verbose > 1 )
-        fprintf (stderr, "Adding '%s' to input file list\n", filename);
+        ms_log (1, "Adding '%s' to input file list\n", filename);
       
       addnode (&filelist, NULL, filename);
       filecnt++;
@@ -648,7 +648,7 @@ addnode (struct listnode **listroot, char *key, char *data)
   
   if ( data == NULL )
     {
-      fprintf (stderr, "addnode(): No file name specified\n");
+      ms_log (2, "addnode(): No file name specified\n");
       return;
     }
   
@@ -693,7 +693,7 @@ addmapnode (struct listnode **listroot, char *mapping)
   
   if ( ! data )
     {
-      fprintf (stderr, "addmapmnode(): Cannot find '=' in mapping '%s'\n", mapping);
+      ms_log (2, "addmapmnode(): Cannot find '=' in mapping '%s'\n", mapping);
       return;
     }
 
@@ -714,7 +714,7 @@ record_handler (char *record, int reclen)
 {
   if ( fwrite(record, reclen, 1, ofp) != 1 )
     {
-      fprintf (stderr, "Error writing to output file\n");
+      ms_log (2, "Cannot write to output file\n");
     }
 }  /* End of record_handler() */
 

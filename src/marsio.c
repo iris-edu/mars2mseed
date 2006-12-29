@@ -1,4 +1,7 @@
 /*
+Revision 1.8  2006-12-29 11:00:00-08  ctrabant
+Change gswapX to ms_gswapX and use ms_log()
+
 Revision 1.7  2006-07-27 16:55:00-08  ctrabant
 Change long's to int's to make 64-bit possible
 
@@ -125,7 +128,7 @@ int convert_word (short input, short format)
       /* floating point number, taking the "scale" value into account */
       break;
     default:
-      fprintf (stderr, "convert_word(): illegal data format %d\n", format);
+      ms_log (2, "convert_word(): illegal data format %d\n", format);
       return 0L;
     }
 }
@@ -156,8 +159,8 @@ int marsBlockGetScaleFactor (char *blk)
       break;
     default: /* invalid data format */
       scale = 0;
-      fprintf (stderr, "marsBlockGetScaleFactor() : invalid data format 0x%1X\n",
-	       mbGetDataFormat(head));
+      ms_log (2, "marsBlockGetScaleFactor() : invalid data format 0x%1X\n",
+	      mbGetDataFormat(head));
     }
   
   return scale;
@@ -185,8 +188,8 @@ double marsBlockGetGain (char *blk)
       break;
     default:
       gain = 0;
-      fprintf (stderr, "marsBlockGetGain() : invalid data format 0x%1X\n",
-	       (head->format_id).data_format);
+      ms_log (2, "marsBlockGetGain() : invalid data format 0x%1X\n",
+	      (head->format_id).data_format);
     }
   
   return gain;
@@ -240,7 +243,7 @@ int *marsBlockDecodeData (char *block, int *scale)
 	 sum = convert_word (codedsum, data_format);
       */
 #ifdef DEBUG
-      fprintf(stderr, "START at %d (0x%04x\n",sum,(buf->head.dstart)&0xffff);
+      ms_log (1, "START at %d (0x%04x\n",sum,(buf->head.dstart)&0xffff);
 #endif
     }	
   
@@ -304,7 +307,7 @@ int *marsBlockDecodeData (char *block, int *scale)
 	data[i] = (int) mantissa << (16 - shift);
 	sum += data[i];
 #ifdef DEBUG
-	fprintf(stderr, "%3d: delta %12ld (0x%04x mant 0x%4x exp 0x%1x) sum %12ld\n",
+	ms_log (1, "%3d: delta %12ld (0x%04x mant 0x%4x exp 0x%1x) sum %12ld\n",
 		i,data[i],(buf->data[i])&0xffff,mantissa&0xffff,exponent&0xf,sum);
 #endif
 	data[i] = sum;
@@ -313,7 +316,7 @@ int *marsBlockDecodeData (char *block, int *scale)
     break;
     
   default:
-    fprintf (stderr, "marsBlockDecodeData(): illegal data format %d\n", data_format);
+    ms_log (2, "marsBlockDecodeData(): illegal data format %d\n", data_format);
     return NULL;
   }
 
@@ -327,15 +330,15 @@ void m88SwapBlock (m88Block *block)
   short    *data;
   
   /* Swap header */
-  gswap4 (&head->dev_id);
-  gswap4 (&(head->time).time);
-  gswap2 (&(head->time).delta);
-  gswap2 (&(head->time).mode);
-  gswap2 (&head->maxamp);
+  ms_gswap4 (&head->dev_id);
+  ms_gswap4 (&(head->time).time);
+  ms_gswap2 (&(head->time).delta);
+  ms_gswap2 (&(head->time).mode);
+  ms_gswap2 (&head->maxamp);
   
   /* Swap data */
   for ( data = block->data; data < block->data+marsBlockSamples; data++)
-    gswap2 (data);
+    ms_gswap2 (data);
 }
 
 
@@ -345,13 +348,13 @@ void mlSwapBlock (mlBlock *block)
   short   *data;
   
   /* Swap header */
-  gswap4 (&head->time);
-  gswap2 (&head->maxamp);
-  gswap2 (&head->dstart);
+  ms_gswap4 (&head->time);
+  ms_gswap2 (&head->maxamp);
+  ms_gswap2 (&head->dstart);
   
   /* Swap data */
   for ( data = block->data; data < block->data+marsBlockSamples; data++)
-    gswap2 (data);
+    ms_gswap2 (data);
 }
 
 
@@ -363,13 +366,13 @@ marsStream *marsStreamOpen (char *name)
   
   if ( stat(name,&fs) )
     {
-      fprintf (stderr, "Cannot stat file \'%s\' - %s\n", name, strerror(errno));
+      ms_log (2, "Cannot stat file \'%s\' - %s\n", name, strerror(errno));
       return NULL;
     }
   
   if ( (MS.hf = fopen(name,"rb")) == NULL )
     {
-      fprintf (stderr, "Cannot open file \'%s\' - %s\n", name, strerror(errno));
+      ms_log (2, "Cannot open file \'%s\' - %s\n", name, strerror(errno));
       return NULL;
     }
   
@@ -397,22 +400,22 @@ int marsStreamDumpBlock (marsStream *hMS)
       hData = marsBlockDecodeData (hB,&scale);
       hptime = MS_EPOCH2HPTIME (mbGetTime(hB));
       ms_hptime2isotimestr (hptime, timestr);
-      fprintf (stderr, "MB sta='%4s' chano=%d block=%d samp=%d scale=%d time=%s c2uV=%d maxamp=%d",
-	       mbGetStationCode(hB), mbGetChan(hB), mbGetBlockFormat(hB),
-	       mbGetSamp(hB), mbGetScale(hB),
-	       timestr,
-	       marsBlockGetScaleFactor(hB),
-	       mbGetMaxamp(hB));
+      ms_log (1, "MB sta='%4s' chano=%d block=%d samp=%d scale=%d time=%s c2uV=%d maxamp=%d",
+	      mbGetStationCode(hB), mbGetChan(hB), mbGetBlockFormat(hB),
+	      mbGetSamp(hB), mbGetScale(hB),
+	      timestr,
+	      marsBlockGetScaleFactor(hB),
+	      mbGetMaxamp(hB));
       
       if ( hData )
 	{
-	  fprintf (stderr, "\n");
+	  ms_log (1, "\n");
 	  for (hD=hData, gain=marsBlockGetGain(hB); hD<(hData+marsBlockSamples); hD++)
-	    fprintf (stderr, "%d => %g\n",*hD, *hD*gain);
+	    ms_log (1, "%d => %g\n",*hD, *hD*gain);
 	  return 1;
 	}
       else
-	fprintf (stderr, ":ERROR: CANNOT DECODE\n");
+	ms_log (2, ":ERROR: CANNOT DECODE\n");
     }
   
   return 0;
@@ -439,11 +442,11 @@ marsStream *marsStreamGetNextBlock (int verbose)
 	  }
       
       if ( verbose >= 2 )
-	fprintf (stderr, "MB 0x%016X : block %d : %s : 0x%04X : %d : %d : chan %d\n",
-		 (unsigned int)MS.offset,(int)(MS.offset/marsBlockSize),
-		 isMarsDataBlock(MS.block)?"DATA":"MON ",
-		 mbGetMagic(MS.block),mbGetBlockFormat(MS.block),mbGetDataFormat(MS.block),
-		 mbGetChan(MS.block));
+	ms_log (1, "MB 0x%016X : block %d : %s : 0x%04X : %d : %d : chan %d\n",
+		(unsigned int)MS.offset,(int)(MS.offset/marsBlockSize),
+		isMarsDataBlock(MS.block)?"DATA":"MON ",
+		mbGetMagic(MS.block),mbGetBlockFormat(MS.block),mbGetDataFormat(MS.block),
+		mbGetChan(MS.block));
       
       if ( isMarsDataBlock(MS.block) && mbGetChan(MS.block) < 3 )
 	{ /* do checks */

@@ -253,8 +253,8 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	    ms_log (1, "Applying gain: %f c/uV and scaling: %d for total: %f\n",
 		    gain, scaling, totalgain);
 	  
+	  /* Apply gain & scaling to decoded data samples */
 	  truncwarn = 0;
-	  
 	  for ( hD=hData; hD < (hData+marsBlockSamples); hD++)
 	    {
 	      sample = (*hD) * totalgain;

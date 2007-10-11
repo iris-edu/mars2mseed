@@ -5,7 +5,7 @@
  *
  * Written by Chad Trabant, IRIS Data Management Center
  *
- * modified 2006.363
+ * modified 2007.284
  ***************************************************************************/
 
 #include <stdio.h>
@@ -43,7 +43,7 @@ static char *getoptval (int argcount, char **argvec, int argopt);
 static int readlistfile (char *listfile);
 static void addnode (struct listnode **listroot, char *key, char *data);
 static void addmapnode (struct listnode **listroot, char *mapping);
-static void record_handler (char *record, int reclen);
+static void record_handler (char *record, int reclen, void *handlerdata);
 static void usage (void);
 
 static int   verbose     = 0;
@@ -161,7 +161,7 @@ packtraces (flag flush)
           continue;
         }
 
-      trpackedrecords = mst_pack (mst, &record_handler, packreclen, encoding, byteorder,
+      trpackedrecords = mst_pack (mst, &record_handler, 0, packreclen, encoding, byteorder,
                                   &trpackedsamples, flush, verbose-2, NULL);
       if ( trpackedrecords < 0 )
         {
@@ -710,7 +710,7 @@ addmapnode (struct listnode **listroot, char *mapping)
  * Saves passed records to the output file.
  ***************************************************************************/
 static void
-record_handler (char *record, int reclen)
+record_handler (char *record, int reclen, void *handlerdata)
 {
   if ( fwrite(record, reclen, 1, ofp) != 1 )
     {

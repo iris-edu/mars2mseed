@@ -399,7 +399,7 @@ int marsStreamDumpBlock (marsStream *hMS)
     {
       hData = marsBlockDecodeData (hB,&scale);
       hptime = MS_EPOCH2HPTIME (mbGetTime(hB));
-      ms_hptime2isotimestr (hptime, timestr);
+      ms_hptime2isotimestr (hptime, timestr, 1);
       ms_log (1, "MB sta='%4s' chano=%d block=%d samp=%d scale=%d time=%s c2uV=%d maxamp=%d",
 	      mbGetStationCode(hB), mbGetChan(hB), mbGetBlockFormat(hB),
 	      mbGetSamp(hB), mbGetScale(hB),

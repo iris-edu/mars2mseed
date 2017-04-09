@@ -1,19 +1,14 @@
 #
 # Nmake file for mars2mseed - Windows version
 # Use 'nmake -f Makefile.win'
-#
-# THIS HAS NEVER BEEN TESTED
-# Some modification might be required.
 
 NODEBUG=1
 
-!include <ntwin32.mak>
-
 INCS = /I..\libmseed
+OPTS = -D_CRT_SECURE_NO_WARNINGS
 LIBS = ..\libmseed\libmseed.lib
-BIN = ..\mars2mseed.exe
 
-cflags = $(cflags) -DWIN32
+BIN = ..\mars2mseed.exe
 
 all: $(BIN)
 
@@ -21,7 +16,7 @@ $(BIN):	mars2mseed.obj marsio.obj
 	link.exe /nologo /out:$(BIN) $(LIBS) mars2mseed.obj marsio.obj
 
 .c.obj:
-   $(cc) /nologo $(cflags) $(cdebug) $(cvarsmt) $(tflags) $(INCS) $<
+	$(CC) /nologo $(CFLAGS) $(INCS) $(OPTS) /c $<
 
 # Clean-up directives
 clean:

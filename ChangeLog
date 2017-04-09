@@ -1,5 +1,6 @@
 2017.099:
 	- Update libmseed to 2.19.3, adjust counters to 64-bit.
+	- Update licensing to GNU GPL 3.
 
 2010.029: 1.3
 	- Update to libmseed 2.4, including fixes for packing long

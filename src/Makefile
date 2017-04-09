@@ -4,17 +4,13 @@
 #   CC : Specify the C compiler to use
 #   CFLAGS : Specify compiler options to use
 
-# Options specific for GCC
-GCC = gcc
-GCCFLAGS = -g -O2 -Wall -I../libmseed
-
 # Required compiler parameters
-REQCFLAGS = -I../libmseed
+CFLAGS += -I../libmseed
+
+LDFLAGS += -L../libmseed
+LDLIBS += -lmseed -lm
 
 BIN = mars2mseed
-
-LDFLAGS = -L../libmseed
-LDLIBS = -lmseed -lm
 
 OBJS = $(BIN).o marsio.o
 
@@ -26,35 +22,11 @@ $(BIN): $(OBJS)
 clean:
 	rm -f $(OBJS) ../$(BIN)
 
-cc:
-	@$(MAKE) "CC=$(CC)" "CFLAGS=$(CFLAGS)"
-
-gcc:
-	@$(MAKE) "CC=$(GCC)" "CFLAGS=$(GCCFLAGS)"
-
-gcc32:
-	@$(MAKE) "CC=$(GCC)" "CFLAGS=-m32 $(GCCFLAGS)"
-
-gcc64:
-	@$(MAKE) "CC=$(GCC)" "CFLAGS=-m64 $(GCCFLAGS)"
-
-debug:
-	$(MAKE) "CFLAGS=-g $(CFLAGS)"
-
-gccdebug:
-	$(MAKE) "CC=$(GCC)" "CFLAGS=-g $(GCCFLAGS)"
-
-gcc32debug:
-	$(MAKE) "CC=$(GCC)" "CFLAGS=-g -m32 $(GCCFLAGS)"
-
-gcc64debug:
-	$(MAKE) "CC=$(GCC)" "CFLAGS=-g -m64 $(GCCFLAGS)"
-
 # Implicit rule for building object files
 %.o: %.c
 	$(CC) $(CFLAGS) $(REQCFLAGS) -c $<
 
 install:
 	@echo
-	@echo "No install target, copy the executable(s) yourself"
+	@echo "No install target, copy the executable and man page"
 	@echo

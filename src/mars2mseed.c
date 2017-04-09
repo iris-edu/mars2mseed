@@ -18,7 +18,7 @@
 
 #include "marsio.h"
 
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define PACKAGE "mars2mseed"
 
 /* Pre-defined channel transmogrifications */
@@ -69,9 +69,9 @@ struct listnode *chanlist = 0;
 /* Internal data buffers */
 static MSTraceGroup *mstg = 0;
 
-static int packedtraces  = 0;
-static int packedsamples = 0;
-static int packedrecords = 0;
+static int64_t packedtraces  = 0;
+static int64_t packedsamples = 0;
+static int64_t packedrecords = 0;
 
 int
 main (int argc, char **argv)
@@ -121,7 +121,7 @@ main (int argc, char **argv)
 	  packedtraces += mstg->numtraces;
 	}
 
-      ms_log (1, "Packed %d trace(s) of %d samples into %d records\n",
+      ms_log (1, "Packed %"PRId64" trace(s) of %"PRId64" samples into %"PRId64" records\n",
 	      packedtraces, packedsamples, packedrecords);
       
       ms_log (1, "All data samples have been scaled by %d and are now %d nanovolts!\n",
@@ -149,8 +149,8 @@ static void
 packtraces (flag flush)
 {
   MSTrace *mst;
-  int trpackedsamples = 0;
-  int trpackedrecords = 0;
+  int64_t trpackedsamples = 0;
+  int64_t trpackedrecords = 0;
   
   mst = mstg->traces;
   while ( mst )

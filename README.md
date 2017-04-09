@@ -1,7 +1,7 @@
 
 mars2mseed - convert MARS 88/lite waveform data to Mini-SEED.
 
-**All data samples are scaled by 10 during this conversion, do not forget
+**All data samples are scaled by default during this conversion, do not forget
 to take this into account when using the resulting Mini-SEED.**
 
 ## Acknowledgements

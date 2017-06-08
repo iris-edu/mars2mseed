@@ -42,9 +42,9 @@ static int m88BlockDecodedData[marsBlockSamples];
 static char mbNameBuf[64];
 
 
-int isMarsDataBlock (char *blk)
+int isMarsDataBlock (block_t *blk)
 {
-  m88Head *head = (m88Head *)blk;
+  m88Head *head = &blk->m88Head;
   
   return ( (((head->format_id).magic == LEMAGICle) || ((head->format_id).magic == LEMAGICbe)) &&
 	   (((head->format_id).block_format == DATABLK_FORMAT) ||
@@ -52,7 +52,7 @@ int isMarsDataBlock (char *blk)
 }
 
 
-char *mbGetStationCode (char *blk)
+char *mbGetStationCode (block_t *blk)
 {
   switch( mbGetBlockFormat(blk) )
     {
@@ -71,7 +71,7 @@ char *mbGetStationCode (char *blk)
 }
 
 
-int mbGetStationSerial (char *blk)
+int mbGetStationSerial (block_t *blk)
 {
   switch( mbGetBlockFormat(blk) )
     {
@@ -133,16 +133,16 @@ int convert_word (short input, short format)
 }
 
 
-int marsBlockGetScaleFactor (char *blk)
+int marsBlockGetScaleFactor (block_t *blk)
 {
 /*	Negative values means multiply
 	Positive means divide
 	0 invalid
 */
-  m88Head   *head=(m88Head *)blk;
+  m88Head   *head=&(blk->m88Head);
   int 	     scale;
   
-  switch ( mbGetDataFormat(head) )
+  switch ( mbGetDataFormat(blk) )
     {
     case 0:
       scale = -(1 << head->scale);
@@ -159,19 +159,19 @@ int marsBlockGetScaleFactor (char *blk)
     default: /* invalid data format */
       scale = 0;
       ms_log (2, "marsBlockGetScaleFactor() : invalid data format 0x%1X\n",
-	      mbGetDataFormat(head));
+	      mbGetDataFormat(blk));
     }
   
   return scale;
 }
 
 
-double marsBlockGetGain (char *blk)
+double marsBlockGetGain (block_t *blk)
 {
-  m88Head   *head=(m88Head *)blk;
+  m88Head   *head=&(blk->m88Head);
   double     gain=0;
   
-  switch ( mbGetDataFormat(head) )
+  switch ( mbGetDataFormat(blk) )
     {
     case 0:
       gain = (double)( 1 << head->scale );
@@ -195,10 +195,10 @@ double marsBlockGetGain (char *blk)
 }
 
 
-int *marsBlockDecodeData (char *block, int *scale)
+int *marsBlockDecodeData (block_t *block, int *scale)
 {
   int *data=m88BlockDecodedData;
-  m88Block *buf=(m88Block *)block;
+  m88Block *buf=&(block->m88Block);
   
   int    i;
   int    data_format;
@@ -234,7 +234,7 @@ int *marsBlockDecodeData (char *block, int *scale)
     }
   if (data_format == 5)
     {
-      codedsum=((mlHead *)block)->dstart;
+      codedsum=block->mlHead.dstart;
       sum = convert_word (codedsum, data_format);
       /* P.L.Bragato:	QUESTO per il vecchio formato di uscita di "lt2m88"
 	 Chad's translation: THIS for the old format of escape of "lt2m88"
@@ -388,7 +388,7 @@ marsStream *marsStreamOpen (char *name)
 
 int marsStreamDumpBlock (marsStream *hMS)
 {
-  char 	*hB=hMS->block;
+  block_t *hB=&hMS->block;
   char   timestr[50];
   hptime_t hptime;
   int	*hData, *hD, scale;
@@ -424,30 +424,30 @@ int marsStreamDumpBlock (marsStream *hMS)
 marsStream *marsStreamGetNextBlock (int verbose)
 {
   
-  while ( fread(MS.block, marsBlockSize, 1, MS.hf) == 1 )
+  while ( fread(MS.block.data, marsBlockSize, 1, MS.hf) == 1 )
     {
       /* Byte swap block if necessary (i.e. host is big-endian) */
-      if ( mbGetMagic(MS.block) == LEMAGICbe )
-	switch ( ((leFormat *) &(MS.block))->block_format )
+      if ( mbGetMagic(&MS.block) == LEMAGICbe )
+	switch ( MS.block.leFormat.block_format )
 	  {
 	  case 1:  /* MARS-88 data block */
 	  case 2:  /* MARS-88 monitor block */
-	    m88SwapBlock ((m88Block *) &(MS.block));
+	    m88SwapBlock (&(MS.block.m88Block));
 	    break;
 	  case 3:  /* MARSlite data block */
 	  case 4:  /* MARSlite monitor block */
-	    mlSwapBlock ((mlBlock *) &(MS.block));
+	    mlSwapBlock (&(MS.block.mlBlock));
 	    break;
 	  }
       
       if ( verbose >= 2 )
 	ms_log (1, "MB 0x%016X : block %d : %s : 0x%04X : %d : %d : chan %d\n",
 		(unsigned int)MS.offset,(int)(MS.offset/marsBlockSize),
-		isMarsDataBlock(MS.block)?"DATA":"MON ",
-		mbGetMagic(MS.block),mbGetBlockFormat(MS.block),mbGetDataFormat(MS.block),
-		mbGetChan(MS.block));
+		isMarsDataBlock(&MS.block)?"DATA":"MON ",
+		mbGetMagic(&MS.block),mbGetBlockFormat(&MS.block),mbGetDataFormat(&MS.block),
+		mbGetChan(&MS.block));
       
-      if ( isMarsDataBlock(MS.block) && mbGetChan(MS.block) < 3 )
+      if ( isMarsDataBlock(&MS.block) && mbGetChan(&MS.block) < 3 )
 	{ /* do checks */
 	  MS.offset += marsBlockSize;
 	  return &MS;

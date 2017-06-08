@@ -235,17 +235,17 @@ mars2group (char *mfile, MSTraceGroup *mstg)
       
       if ( verbose >= 2 )
 	ms_log (1, "MB sta='%s' chan=%d samprate=%g scale=%d time=%d c2uV=%d maxamp=%d\n",
-		mbGetStationCode(hMS->block), mbGetChan(hMS->block),
-		mbGetSampRate(hMS->block), mbGetScale(hMS->block),
-		mbGetTime(hMS->block),
-		marsBlockGetScaleFactor(hMS->block), mbGetMaxamp(hMS->block));
+		mbGetStationCode(&hMS->block), mbGetChan(&hMS->block),
+		mbGetSampRate(&hMS->block), mbGetScale(&hMS->block),
+		mbGetTime(&hMS->block),
+		marsBlockGetScaleFactor(&hMS->block), mbGetMaxamp(&hMS->block));
       
-      hData = marsBlockDecodeData (hMS->block, &scale);
+      hData = marsBlockDecodeData (&hMS->block, &scale);
       
       if ( hData && ! parseonly )
 	{
 	  /* Scale data samples, some potential gain values can result in non-integer samples */
-	  gain = marsBlockGetGain(hMS->block);
+	  gain = marsBlockGetGain(&hMS->block);
 	  
 	  totalgain = gain * scaling;
 	  
@@ -275,12 +275,12 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  msr->numsamples = marsBlockSamples;
 	  msr->samplecnt = marsBlockSamples;
 	  msr->sampletype = 'i';
-	  msr->samprate = mbGetSampRate(hMS->block);
-	  msr->starttime = MS_EPOCH2HPTIME (mbGetTime(hMS->block));
+	  msr->samprate = mbGetSampRate(&hMS->block);
+	  msr->starttime = MS_EPOCH2HPTIME (mbGetTime(&hMS->block));
 	  
           ms_strncpclean (msr->network, forcenet, 2);
 	  if ( forcesta ) ms_strncpclean (msr->station, forcesta, 5);
-	  else ms_strncpclean (msr->station, mbGetStationCode(hMS->block), 5);
+	  else ms_strncpclean (msr->station, mbGetStationCode(&hMS->block), 5);
           ms_strncpclean (msr->location, forceloc, 2);
 	  
 	  /* Transmogrify the channel numbers to channel codes first
@@ -292,7 +292,7 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	      clp = chanlist;
 	      while ( clp != 0 )
 		{
-		  if ( *(clp->key) == ('0' + (int)mbGetChan(hMS->block)) )
+		  if ( *(clp->key) == ('0' + (int)mbGetChan(&hMS->block)) )
 		    {
 		      strncpy (msr->channel, clp->data, 10);
 		      mapped = 1;
@@ -305,19 +305,19 @@ mars2group (char *mfile, MSTraceGroup *mstg)
 	  if ( ! mapped && transchan >= 0 && transchan <= 4 )
 	    {
 	      snprintf (msr->channel, 10, "%s",
-			transmatrix[transchan][(int)mbGetChan(hMS->block)]);	      
+			transmatrix[transchan][(int)mbGetChan(&hMS->block)]);
 	      mapped = 1;
 	    }
 	  if ( ! mapped )
 	    {
-	      snprintf (msr->channel, 10, "%d", mbGetChan(hMS->block));
+	      snprintf (msr->channel, 10, "%d", mbGetChan(&hMS->block));
 	    }
 	  
 	  /* If MARS88, check for a valid time lag and warn that it's not applied */
-	  if ( mbGetBlockFormat(hMS->block) == DATABLK_FORMAT )
-	    if ( ((m88Head *)(hMS->block))->time.delta != NO_WORD )
+	  if ( mbGetBlockFormat(&hMS->block) == DATABLK_FORMAT )
+	    if ( hMS->block.m88Head.time.delta != NO_WORD )
 	      ms_log (1, "Warning: Time lag of %d ms NOT applied to N: '%s', S: '%s', L: '%s', C: '%s'\n",
-		      ((m88Head *)(hMS->block))->time.delta,
+		      hMS->block.m88Head.time.delta,
 		      msr->network, msr->station,  msr->location, msr->channel);
 	  
 	  if ( verbose >= 1 )

@@ -17,22 +17,33 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.4 2006-07-27 17:2
  #define msCheckStatus(a,b)   ( (a)&(b) )
  
  #define mbHeaderMacros
- #define mbGetMagic(a)	      ((((m88Head *)(a))->format_id).magic)
- #define mbGetBlockFormat(a)  ((((m88Head *)(a))->format_id).block_format)
- #define mbGetDataFormat(a)   ((((m88Head *)(a))->format_id).data_format)
+ #define mbGetMagic(a)	      ((a)->m88Head.format_id.magic)
+ #define mbGetBlockFormat(a)  ((a)->m88Head.format_id.block_format)
+ #define mbGetDataFormat(a)   ((a)->m88Head.format_id.data_format)
  
- #define mbGetChan(a)	      (((m88Head *)(a))->chno)
- #define mbGetSamp(a)	      (1<<(((m88Head *)(a))->samp_rate))
+ #define mbGetChan(a)	      ((a)->m88Head.chno)
+ #define mbGetSamp(a)	      (1<<((a)->m88Head.samp_rate))
  #define mbGetSampRate(a)     (1000.0/mbGetSamp(a))
- #define mbGetMaxamp(a)	      (((m88Head *)(a))->maxamp)
- #define mbGetScale(a)	      (1<<((m88Head *)(a))->scale)
- #define mbGetTime(a)	      ( ((((m88Head *)(a))->format_id).data_format < LITE_BLOCK_FORMAT) ? (((m88Head *)(a))->time).time : ((mlHead *)(a))->time  )
+ #define mbGetMaxamp(a)	      ((a)->m88Head.maxamp)
+ #define mbGetScale(a)	      (1<<(a)->m88Head.scale)
+ #define mbGetTime(a)	      ( ((a)->m88Head.format_id.data_format < LITE_BLOCK_FORMAT) ? (a)->m88Head.time.time : (a)->mlHead.time  )
+
+ typedef union
+ {
+  char		data[marsBlockSize];
+  leFormat	leFormat;
+  leTime	leTime;
+  m88Head	m88Head;
+  mlHead	mlHead;
+  m88Block	m88Block;
+  mlBlock	mlBlock;
+ } block_t;
 
  typedef struct
  {
   FILE	*hf;
   off_t	offset;
-  char	block[marsBlockSize];
+  block_t	block;
   
   size_t  status;
   
@@ -57,13 +68,13 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/marsio.h,v 1.4 2006-07-27 17:2
  void marsStreamClose(void);
  void m88SwapBlock(m88Block *blk);
  
- int *marsBlockDecodeData(char *block,int *scale);
+ int *marsBlockDecodeData(block_t *block,int *scale);
  int marsStreamDumpBlock(marsStream *hMS);
 
- double marsBlockGetGain(char *blk);
- int marsBlockGetScaleFactor(char *blk);
- char *mbGetStationCode(char *blk);
- int mbGetStationSerial(char *blk);
+ double marsBlockGetGain(block_t *blk);
+ int marsBlockGetScaleFactor(block_t *blk);
+ char *mbGetStationCode(block_t *blk);
+ int mbGetStationSerial(block_t *blk);
  
  #ifdef __cplusplus
   }

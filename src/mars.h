@@ -82,14 +82,14 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.3 2006-07-27 17:28:
                             /* 3: 12 bits mantissa, 4 bits exponent, MARS-88 */
                             /* 4: 3 bits exponent/2, 13 bits mantissa, non-differential, lite */
                             /* 5: 3 bits exponent/2, 13 bits mantissa, differential, lite */
- } leFormat;
+ } __attribute__ ((packed)) leFormat;
 
  typedef struct
  {
     int    time;	    /* time/date in ctime(3C) format */
     short  delta;	    /* time lag in ms                */
     short  mode;	    /* low nibble: sync mode; hi nibble: clock state */
- } leTime;
+ } __attribute__ ((packed)) leTime;
 
  typedef struct
  { 			    /*                         length  total   */
@@ -101,7 +101,7 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.3 2006-07-27 17:28:
     short  maxamp;	    /* max.amplitude              2     20     */
     char   scale;	    /* scale (2^N uV)             1     21     */
     char   dummy[3];	    /* ... padding                3     24     */
- } m88Head;
+ } __attribute__ ((packed)) m88Head;
 
  typedef struct 
  {                          /*                          length  total   */
@@ -115,18 +115,18 @@ $Header: /usr/local/cvs/repository/mars2mseed/src/mars.h,v 1.3 2006-07-27 17:28:
   char     scale;           /* scale (2^N uV)              1     21     */
   unsigned char triggidx;   /* trigger index / 2           1     22     */
   short    dstart;          /* start value f. diff format  2     24     */
- } mlHead;
+ } __attribute__ ((packed)) mlHead;
 
  typedef struct
  {
     m88Head	head;
     short	data[marsBlockSamples];
- } m88Block;
+ } __attribute__ ((packed)) m88Block;
 
  typedef struct
  {
     mlHead	head;
     short	data[marsBlockSamples];
- } mlBlock;
+ } __attribute__ ((packed)) mlBlock;
 
 #endif
